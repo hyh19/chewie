@@ -49,14 +49,12 @@ class VideoSegmentConfig {
 class SegmentPlaybackManager {
   SegmentPlaybackManager({
     required this.videoController,
-    required this.segments,
     required this.config,
     this.onAllSegmentsComplete,
     this.onSegmentChanged,
   });
 
   final VideoPlayerController videoController;
-  final List<PlaybackSegment> segments;
   final VideoSegmentConfig config;
   final void Function()? onAllSegmentsComplete;
   final void Function(VideoSegmentConfig config)? onSegmentChanged;
@@ -68,18 +66,40 @@ class SegmentPlaybackManager {
   int get currentSegmentIndex => _currentSegmentIndex;
 
   /// 启动区间播放管理
-  void start({required int initialSegmentIndex}) {
+  void start({required VideoSegmentConfig config}) {
     _isActive = true;
-    _currentSegmentIndex = initialSegmentIndex;
+
+    // 确定初始区间：使用传入的 config 的 currentPlayingSegment
+    final initialSegment = config.currentPlayingSegment;
+    if (initialSegment == null) {
+      // 如果没有指定初始区间，使用第一个区间
+      if (config.segments.isNotEmpty) {
+        final updatedConfig = config.copyWith(
+          currentPlayingSegment: config.segments.first,
+        );
+        onSegmentChanged?.call(updatedConfig);
+        _currentSegmentIndex = 0;
+      }
+    } else {
+      // 查找指定区间在列表中的位置
+      final segmentIndex = config.segments.indexWhere(
+        (segment) =>
+            segment.start == initialSegment.start &&
+            segment.end == initialSegment.end,
+      );
+      if (segmentIndex >= 0) {
+        _currentSegmentIndex = segmentIndex;
+      } else {
+        _currentSegmentIndex = 0;
+      }
+    }
+
     videoController.addListener(_onPositionChanged);
 
     // 跳转到指定区间的起始位置
-    if (segments.isNotEmpty && initialSegmentIndex < segments.length) {
-      videoController.seekTo(segments[initialSegmentIndex].start);
-      final updatedConfig = config.copyWith(
-        currentPlayingSegment: segments[initialSegmentIndex],
-      );
-      onSegmentChanged?.call(updatedConfig);
+    if (config.segments.isNotEmpty &&
+        _currentSegmentIndex < config.segments.length) {
+      videoController.seekTo(config.segments[_currentSegmentIndex].start);
     }
   }
 
@@ -90,19 +110,19 @@ class SegmentPlaybackManager {
   }
 
   void _onPositionChanged() {
-    if (!_isActive || segments.isEmpty) return;
+    if (!_isActive || config.segments.isEmpty) return;
 
     final position = videoController.value.position;
-    final currentSegment = segments[_currentSegmentIndex];
+    final currentSegment = config.segments[_currentSegmentIndex];
 
     // 超出当前区间结束时间
     if (position > currentSegment.end) {
-      if (_currentSegmentIndex < segments.length - 1) {
+      if (_currentSegmentIndex < config.segments.length - 1) {
         // 跳转到下一个区间
         _currentSegmentIndex++;
-        videoController.seekTo(segments[_currentSegmentIndex].start);
+        videoController.seekTo(config.segments[_currentSegmentIndex].start);
         final updatedConfig = config.copyWith(
-          currentPlayingSegment: segments[_currentSegmentIndex],
+          currentPlayingSegment: config.segments[_currentSegmentIndex],
         );
         onSegmentChanged?.call(updatedConfig);
       } else {
@@ -121,12 +141,22 @@ class SegmentPlaybackManager {
   }
 
   /// 跳转到指定区间
-  void jumpToSegment(int index) {
-    if (index >= 0 && index < segments.length) {
-      _currentSegmentIndex = index;
-      videoController.seekTo(segments[index].start);
+  void jumpToSegment(VideoSegmentConfig config) {
+    final targetSegment = config.currentPlayingSegment;
+    if (targetSegment == null) return;
+
+    // 查找目标区间在列表中的位置
+    final segmentIndex = config.segments.indexWhere(
+      (segment) =>
+          segment.start == targetSegment.start &&
+          segment.end == targetSegment.end,
+    );
+
+    if (segmentIndex >= 0) {
+      _currentSegmentIndex = segmentIndex;
+      videoController.seekTo(config.segments[segmentIndex].start);
       final updatedConfig = config.copyWith(
-        currentPlayingSegment: segments[index],
+        currentPlayingSegment: config.segments[segmentIndex],
       );
       onSegmentChanged?.call(updatedConfig);
     }

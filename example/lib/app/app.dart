@@ -139,7 +139,6 @@ class _ChewieDemoState extends State<ChewieDemo> {
     // 创建新的管理器
     _segmentManager = SegmentPlaybackManager(
       videoController: _videoPlayerController,
-      segments: config.segments,
       config: config,
       onAllSegmentsComplete: () {
         // 当当前视频的所有区间播放完毕时，切换到下一个视频
@@ -159,7 +158,7 @@ class _ChewieDemoState extends State<ChewieDemo> {
     );
 
     // 启动管理器
-    _segmentManager!.start(initialSegmentIndex: segmentIndex);
+    _segmentManager!.start(config: config);
   }
 
   VideoSegmentConfig get currentPlayingConfig {
@@ -205,10 +204,8 @@ class _ChewieDemoState extends State<ChewieDemo> {
       }
     } else {
       // 同一视频，直接跳转到指定区间
-      final segmentIndex = config.segments.indexOf(segment);
-      if (_segmentManager != null && segmentIndex >= 0) {
-        _segmentManager!.jumpToSegment(segmentIndex);
-      }
+      final newConfig = config.copyWith(currentPlayingSegment: segment);
+      _segmentManager?.jumpToSegment(newConfig);
     }
   }
 
