@@ -2,7 +2,7 @@
 
 ## 概述
 
-本教程基于 `example/lib/app/app.dart` 中的示例代码,详细讲解如何在 Flutter 应用中使用 Chewie 和 video_player 两个视频播放库。
+本教程基于 `example/lib/app/app.dart` 中的示例代码，详细讲解如何在 Flutter 应用中使用 Chewie 和 video_player 两个视频播放库。
 
 ## 目录
 

@@ -2,11 +2,11 @@
 
 ## 概述
 
-要正确使用 Chewie 和 video_player,首先需要理解几个核心概念。本章将深入讲解控制器、生命周期管理和状态管理等关键概念。
+要正确使用 Chewie 和 video_player，首先需要理解几个核心概念。本章将深入讲解控制器、生命周期管理和状态管理等关键概念。
 
 ## VideoPlayerController - 视频播放控制器
 
-`VideoPlayerController` 是 video_player 库的核心类,负责管理视频播放的所有逻辑。
+`VideoPlayerController` 是 video_player 库的核心类，负责管理视频播放的所有逻辑。
 
 ### 核心职责
 
@@ -36,11 +36,11 @@ graph TB
 
 ### 主要方法
 
-- `initialize()`: 初始化视频播放器
-- `play()`: 开始播放视频
-- `pause()`: 暂停播放
-- `seekTo(Duration)`: 跳转到指定时间位置
-- `dispose()`: 释放资源
+- `initialize()`：初始化视频播放器
+- `play()`：开始播放视频
+- `pause()`：暂停播放
+- `seekTo(Duration)`：跳转到指定时间位置
+- `dispose()`：释放资源
 
 ### 状态监听
 
@@ -55,7 +55,7 @@ _videoPlayerController.value.isBuffering // 是否正在缓冲
 
 ## ChewieController - Chewie 控制器
 
-`ChewieController` 是 Chewie 库的核心控制器,它封装了 `VideoPlayerController` 并添加了 UI 控制功能。
+`ChewieController` 是 Chewie 库的核心控制器，它封装了 `VideoPlayerController` 并添加了 UI 控制功能。
 
 ### ChewieController 职责
 
@@ -85,17 +85,17 @@ graph TB
 
 ### 主要配置选项
 
-- `autoPlay`: 是否自动播放
-- `looping`: 是否循环播放
-- `zoomAndPan`: 是否支持缩放和平移
-- `subtitle`: 字幕数据
-- `showSubtitles`: 是否显示字幕
-- `additionalOptions`: 自定义选项菜单
-- `hideControlsTimer`: 控制条自动隐藏时间
+- `autoPlay`：是否自动播放
+- `looping`：是否循环播放
+- `zoomAndPan`：是否支持缩放和平移
+- `subtitle`：字幕数据
+- `showSubtitles`：是否显示字幕
+- `additionalOptions`：自定义选项菜单
+- `hideControlsTimer`：控制条自动隐藏时间
 
 ## 生命周期管理
 
-正确管理控制器的生命周期至关重要,这直接影响内存使用和应用性能。
+正确管理控制器的生命周期至关重要，这直接影响内存使用和应用性能。
 
 ### 初始化流程
 
@@ -168,7 +168,7 @@ graph TD
 
 ## 异步初始化
 
-视频播放器的初始化是一个异步过程,需要使用 `async/await` 正确处理。
+视频播放器的初始化是一个异步过程，需要使用 `async/await` 正确处理。
 
 ### 为什么是异步的
 
@@ -222,11 +222,11 @@ Future<void> initializePlayer() async {
 
 ### 控制器状态变化
 
-视频播放器的状态会不断变化,需要通过监听器更新 UI。
+视频播放器的状态会不断变化，需要通过监听器更新 UI。
 
 ### ValueNotifier 模式
 
-`VideoPlayerController` 使用 `ValueNotifier` 来通知状态变化:
+`VideoPlayerController` 使用 `ValueNotifier` 来通知状态变化：
 
 ```dart
 _videoPlayerController.addListener(() {
@@ -236,13 +236,13 @@ _videoPlayerController.addListener(() {
 
 ### 或使用 ChewieController 的状态
 
-Chewie 会自动处理状态监听,你只需要在需要时调用 `setState()`。
+Chewie 会自动处理状态监听，你只需要在需要时调用 `setState()`。
 
 ## 多视频控制器管理
 
-在一些场景下,你可能需要同时管理多个视频控制器。
+在一些场景下，你可能需要同时管理多个视频控制器。
 
-在示例代码中:
+在示例代码中：
 
 ```18:21:example/lib/app/app.dart
   TargetPlatform? _platform;
@@ -251,7 +251,7 @@ Chewie 会自动处理状态监听,你只需要在需要时调用 `setState()`�
   ChewieController? _chewieController;
 ```
 
-这样做可以:
+这样做可以：
 
 - 支持多个视频源
 - 在运行时切换视频
@@ -259,4 +259,4 @@ Chewie 会自动处理状态监听,你只需要在需要时调用 `setState()`�
 
 ## 下一步
 
-现在你已经理解了核心概念,接下来我们将深入分析示例代码的每个部分。请继续阅读 [第 3 章:代码逐段解析](./03-code-analysis.md)
+现在你已经理解了核心概念，接下来我们将深入分析示例代码的每个部分。请继续阅读 [第 3 章：代码逐段解析](./03-code-analysis.md)

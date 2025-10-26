@@ -2,7 +2,7 @@
 
 ## 概述
 
-本章将详细分析 `example/lib/app/app.dart` 中的代码,逐段讲解每个重要功能模块的实现。
+本章将详细分析 `example/lib/app/app.dart` 中的代码，逐段讲解每个重要功能模块的实现。
 
 ## 状态管理部分
 
@@ -19,10 +19,10 @@ class _ChewieDemoState extends State<ChewieDemo> {
 
 ### 变量说明
 
-- `_platform`: 当前使用的平台控件风格(iOS/Android/Desktop)
-- `_videoPlayerController1/2`: 两个视频控制器,支持切换视频源
-- `_chewieController`: Chewie 控制器,管理整个播放器 UI
-- `bufferDelay`: 进度指示器的延迟时间
+- `_platform`：当前使用的平台控件风格（iOS/Android/Desktop）
+- `_videoPlayerController1/2`：两个视频控制器，支持切换视频源
+- `_chewieController`：Chewie 控制器，管理整个播放器 UI
+- `bufferDelay`：进度指示器的延迟时间
 
 ### 视频源列表
 
@@ -59,18 +59,18 @@ class _ChewieDemoState extends State<ChewieDemo> {
   }
 ```
 
-**关键点解析:**
+**关键点解析：**
 
-1. **并行初始化**: 使用 `Future.wait()` 同时初始化两个控制器,提高效率
-2. **网络地址**: 使用 `VideoPlayerController.networkUrl()` 播放网络视频
-3. **视频源选择**: 通过 `currPlayIndex` 变量切换不同的视频
-4. **状态更新**: 初始化完成后调用 `setState()` 刷新 UI
+1. **并行初始化**：使用 `Future.wait()` 同时初始化两个控制器，提高效率
+2. **网络地址**：使用 `VideoPlayerController.networkUrl()` 播放网络视频
+3. **视频源选择**：通过 `currPlayIndex` 变量切换不同的视频
+4. **状态更新**：初始化完成后调用 `setState()` 刷新 UI
 
 ## ChewieController 配置
 
 ### _createChewieController 方法
 
-这是最重要的配置方法,包含了大量的功能示例:
+这是最重要的配置方法，包含了大量的功能示例：
 
 ```dart 59:155:example/lib/app/app.dart
   void _createChewieController() {
@@ -176,26 +176,26 @@ class _ChewieDemoState extends State<ChewieDemo> {
 
 #### 基础配置
 
-- `videoPlayerController`: 绑定的视频控制器
-- `autoPlay: true`: 自动开始播放
-- `looping: true`: 循环播放
-- `zoomAndPan: true`: 支持缩放和平移手势
+- `videoPlayerController`：绑定的视频控制器
+- `autoPlay: true`：自动开始播放
+- `looping: true`：循环播放
+- `zoomAndPan: true`：支持缩放和平移手势
 
 #### 字幕系统
 
-本示例展示了两种字幕格式:
+本示例展示了两种字幕格式：
 
-1. **简单文本字幕** (第 75-80 行):
+1. **简单文本字幕**（第 75-80 行）：
    - 使用 `text` 参数传入字符串
 
-2. **富文本字幕** (第 80-95 行):
+2. **富文本字幕**（第 80-95 行）：
    - 使用 `TextSpan` 创建多行富文本
    - 每行可以设置不同的颜色和字体大小
    - 实现更丰富的视觉效果
 
-3. **自定义字幕渲染** (第 129-137 行):
+3. **自定义字幕渲染**（第 129-137 行）：
    - `subtitleBuilder` 允许完全自定义字幕显示样式
-   - 支持判断字幕类型(文本/富文本)
+   - 支持判断字幕类型（文本/富文本）
    - 使用 `RichText` 渲染富文本内容
 
 #### 自定义选项菜单
@@ -383,10 +383,10 @@ class _ChewieDemoState extends State<ChewieDemo> {
             ),
 ```
 
-展示了两种切换方式:
+展示了两种切换方式：
 
-- **方式 1**: 重新创建控制器
-- **方式 2**: 使用 `copyWith()` 修改现有控制器
+- **方式 1**：重新创建控制器
+- **方式 2**：使用 `copyWith()` 修改现有控制器
 
 #### 4. 平台控件切换
 
@@ -423,7 +423,7 @@ class _ChewieDemoState extends State<ChewieDemo> {
             ),
 ```
 
-动态切换控件风格,适配不同平台设计规范。
+动态切换控件风格，适配不同平台设计规范。
 
 #### 5. 进度指示器延迟配置
 
@@ -461,11 +461,11 @@ class _ChewieDemoState extends State<ChewieDemo> {
               ),
 ```
 
-通过滑块调整缓冲指示器延迟,优化用户体验。
+通过滑块调整缓冲指示器延迟，优化用户体验。
 
 ## DelaySlider 组件
 
-自定义的延迟设置组件:
+自定义的延迟设置组件：
 
 ```dart 331:379:example/lib/app/app.dart
 class DelaySlider extends StatefulWidget {
@@ -519,8 +519,8 @@ class _DelaySliderState extends State<DelaySlider> {
 }
 ```
 
-这是一个独立的功能组件,展示了如何实现一个带有保存功能的滑块。
+这是一个独立的功能组件，展示了如何实现一个带有保存功能的滑块。
 
 ## 下一步
 
-现在你已经理解了代码的各个部分,接下来我们将深入探索 Chewie 的各种强大功能。请继续阅读 [第 4 章:功能特性详解](./04-features.md)
+现在你已经理解了代码的各个部分，接下来我们将深入探索 Chewie 的各种强大功能。请继续阅读 [第 4 章：功能特性详解](./04-features.md)

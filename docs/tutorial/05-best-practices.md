@@ -2,7 +2,7 @@
 
 ## 概述
 
-本章将分享使用 Chewie 和 video_player 的最佳实践,帮助你编写更高效、更优雅的代码。
+本章将分享使用 Chewie 和 video_player 的最佳实践，帮助你编写更高效、更优雅的代码。
 
 ## 资源管理
 
@@ -20,7 +20,7 @@ void dispose() {
 }
 ```
 
-**关键点:**
+**关键点：**
 
 - 必须释放所有控制器资源
 - 使用 `?.` 安全调用避免空指针异常
@@ -30,7 +30,7 @@ void dispose() {
 ### 避免内存泄漏
 
 ```dart
-// 错误示例: 忘记 dispose
+// 错误示例：忘记 dispose
 late VideoPlayerController _controller;
 
 @override
@@ -39,7 +39,7 @@ void dispose() {
   super.dispose();
 }
 
-// 正确示例: 完整释放资源
+// 正确示例：完整释放资源
 late VideoPlayerController _controller;
 
 @override
@@ -67,7 +67,7 @@ Future<void> initializePlayer() async {
     await _videoPlayerController.initialize();
   } catch (e) {
     // 处理错误
-    print('初始化失败: $e');
+    print('初始化失败：$e');
     return;
   }
   
@@ -88,7 +88,7 @@ try {
   await _videoPlayerController.initialize();
 } catch (e) {
   // 记录错误日志
-  debugPrint('视频初始化失败: $e');
+  debugPrint('视频初始化失败：$e');
   
   // 通知用户
   ScaffoldMessenger.of(context).showSnackBar(
@@ -145,12 +145,12 @@ class VideoPlayerPage extends StatelessWidget {
 ### 合理使用 setState
 
 ```dart
-// 错误示例: 频繁调用 setState
+// 错误示例：频繁调用 setState
 void _onVideoProgress() {
   setState(() {});  // 避免在监听器中频繁调用
 }
 
-// 正确示例: 只在必要时调用
+// 正确示例：只在必要时调用
 void _onVideoProgress() {
   // 不需要立即更新 UI 时,不调用 setState
 }
@@ -246,7 +246,7 @@ Future<void> initializePlayer() async {
 try {
   await _videoPlayerController.initialize();
 } on FormatException catch (e) {
-  debugPrint('视频格式错误: $e');
+  debugPrint('视频格式错误：$e');
   _showErrorMessage('不支持的视频格式');
 }
 ```
@@ -259,8 +259,8 @@ try {
     const Duration(seconds: 10),
   );
 } on TimeoutException catch (e) {
-  debugPrint('初始化超时: $e');
-  _showErrorMessage('视频加载超时,请重试');
+  debugPrint('初始化超时：$e');
+  _showErrorMessage('视频加载超时，请重试');
 }
 ```
 
@@ -464,13 +464,13 @@ final controller = VideoPlayerController.networkUrl(
 // 调整缓冲设置
 _chewieController = ChewieController(
   videoPlayerController: controller,
-  progressIndicatorDelay: Duration(milliseconds: 500),
+  progressIndicatorDelay: const Duration(milliseconds: 500),
 );
 ```
 
 ## 总结
 
-遵循这些最佳实践,你将能够:
+遵循这些最佳实践，你将能够：
 
 1. **避免内存泄漏**: 正确管理资源生命周期
 2. **提升用户体验**: 合理的加载和错误处理
