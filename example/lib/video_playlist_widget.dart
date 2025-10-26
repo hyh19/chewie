@@ -22,12 +22,9 @@ class VideoPlaylistWidget extends StatelessWidget {
       itemCount: videoConfigs.length,
       itemBuilder: (context, index) {
         final config = videoConfigs[index];
-        // 判断是否为当前播放视频：检查是否至少有一个区间正在播放
-        final isCurrentVideo = config.currentPlayingSegment != null;
 
         return VideoPlaylistItemWidget(
           config: config,
-          isCurrentVideo: isCurrentVideo,
           onSegmentSelected: onSegmentSelected,
         );
       },

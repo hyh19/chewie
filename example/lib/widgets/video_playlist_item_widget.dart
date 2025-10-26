@@ -9,12 +9,10 @@ class VideoPlaylistItemWidget extends StatelessWidget {
   const VideoPlaylistItemWidget({
     super.key,
     required this.config,
-    required this.isCurrentVideo,
     required this.onSegmentSelected,
   });
 
   final VideoSegmentConfig config;
-  final bool isCurrentVideo;
   final void Function(VideoSegmentConfig config, PlaybackSegment segment)
   onSegmentSelected;
 
@@ -34,6 +32,8 @@ class VideoPlaylistItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCurrentVideo = config.isPlaying;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: isCurrentVideo ? 4 : 1,
@@ -58,16 +58,10 @@ class VideoPlaylistItemWidget extends StatelessWidget {
         ),
         children: config.segments.map((segment) {
           final segmentIndex = config.segments.indexOf(segment);
-          final isCurrentSegment =
-              isCurrentVideo &&
-              config.currentPlayingSegment != null &&
-              config.currentPlayingSegment!.start == segment.start &&
-              config.currentPlayingSegment!.end == segment.end;
 
           return SegmentItemWidget(
             segment: segment,
             segmentIndex: segmentIndex,
-            isPlaying: isCurrentSegment,
             onTap: () {
               onSegmentSelected(config, segment);
             },

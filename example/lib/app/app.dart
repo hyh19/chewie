@@ -29,9 +29,8 @@ class _ChewieDemoState extends State<ChewieDemo> {
     // 初始化时将第一个视频的第一个区间设置为当前播放区间
     final firstConfig = videoConfigs.first;
     final firstSegment = firstConfig.segments.first;
-    initializePlayer(
-      videoConfigs.first.copyWith(currentPlayingSegment: firstSegment),
-    );
+    firstConfig.setPlayingSegment(firstSegment);
+    initializePlayer(videoConfigs.first);
   }
 
   @override
@@ -134,13 +133,8 @@ class _ChewieDemoState extends State<ChewieDemo> {
       },
       onSegmentChanged: (updatedConfig) {
         if (mounted) {
-          setState(() {
-            // 更新对应配置的当前播放区间
-            final index = videoConfigs.indexWhere((c) => c.url == config.url);
-            if (index >= 0) {
-              videoConfigs[index] = updatedConfig;
-            }
-          });
+          // 由于 config 是直接修改的，只需要触发 setState
+          setState(() {});
         }
       },
     );
@@ -151,7 +145,7 @@ class _ChewieDemoState extends State<ChewieDemo> {
 
   VideoSegmentConfig get currentPlayingConfig {
     return videoConfigs.firstWhere(
-      (config) => config.currentPlayingSegment != null,
+      (config) => config.isPlaying,
       orElse: () => videoConfigs.first,
     );
   }
@@ -160,19 +154,20 @@ class _ChewieDemoState extends State<ChewieDemo> {
     await _videoPlayerController.pause();
 
     // 找到当前播放的配置
-    final currentIndex = videoConfigs.indexWhere(
-      (config) => config.currentPlayingSegment != null,
-    );
+    final currentIndex = videoConfigs.indexWhere((config) => config.isPlaying);
+
+    // 重置当前视频状态
+    if (currentIndex >= 0 && currentIndex < videoConfigs.length) {
+      videoConfigs[currentIndex].reset();
+    }
 
     // 切换到下一个视频
     final nextIndex = (currentIndex + 1) % videoConfigs.length;
     final nextConfig = videoConfigs[nextIndex];
     final firstSegment = nextConfig.segments.first;
 
-    // 更新配置并初始化播放器
-    videoConfigs[nextIndex] = nextConfig.copyWith(
-      currentPlayingSegment: firstSegment,
-    );
+    // 设置新的播放区间
+    nextConfig.setPlayingSegment(firstSegment);
     await initializePlayer(videoConfigs[nextIndex]);
   }
 
@@ -184,16 +179,19 @@ class _ChewieDemoState extends State<ChewieDemo> {
     final currentConfig = currentPlayingConfig;
 
     if (config.url != currentConfig.url) {
+      // 切换视频：重置当前视频状态，设置新视频区间
+      currentConfig.reset();
+
       // 切换视频：更新配置并初始化播放器
       final index = videoConfigs.indexWhere((c) => c.url == config.url);
       if (index >= 0) {
-        videoConfigs[index] = config.copyWith(currentPlayingSegment: segment);
+        config.setPlayingSegment(segment);
         await initializePlayer(videoConfigs[index]);
       }
     } else {
       // 同一视频，直接跳转到指定区间
-      final newConfig = config.copyWith(currentPlayingSegment: segment);
-      _segmentManager?.jumpToSegment(newConfig);
+      config.setPlayingSegment(segment);
+      _segmentManager?.jumpToSegment(config);
     }
   }
 
