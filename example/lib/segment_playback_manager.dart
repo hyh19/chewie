@@ -59,11 +59,7 @@ class SegmentPlaybackManager {
   final void Function()? onAllSegmentsComplete;
   final void Function(VideoSegmentConfig config)? onSegmentChanged;
 
-  int _currentSegmentIndex = 0;
   bool _isActive = false;
-
-  /// 获取当前区间索引
-  int get currentSegmentIndex => _currentSegmentIndex;
 
   /// 启动区间播放管理
   void start({required VideoSegmentConfig config}) {
@@ -78,28 +74,14 @@ class SegmentPlaybackManager {
           currentPlayingSegment: config.segments.first,
         );
         onSegmentChanged?.call(updatedConfig);
-        _currentSegmentIndex = 0;
-      }
-    } else {
-      // 查找指定区间在列表中的位置
-      final segmentIndex = config.segments.indexWhere(
-        (segment) =>
-            segment.start == initialSegment.start &&
-            segment.end == initialSegment.end,
-      );
-      if (segmentIndex >= 0) {
-        _currentSegmentIndex = segmentIndex;
-      } else {
-        _currentSegmentIndex = 0;
       }
     }
 
     videoController.addListener(_onPositionChanged);
 
     // 跳转到指定区间的起始位置
-    if (config.segments.isNotEmpty &&
-        _currentSegmentIndex < config.segments.length) {
-      videoController.seekTo(config.segments[_currentSegmentIndex].start);
+    if (config.segments.isNotEmpty && config.currentPlayingSegment != null) {
+      videoController.seekTo(config.currentPlayingSegment!.start);
     }
   }
 
@@ -113,16 +95,20 @@ class SegmentPlaybackManager {
     if (!_isActive || config.segments.isEmpty) return;
 
     final position = videoController.value.position;
-    final currentSegment = config.segments[_currentSegmentIndex];
+    final currentSegment = config.currentPlayingSegment;
+    if (currentSegment == null) return;
 
     // 超出当前区间结束时间
     if (position > currentSegment.end) {
-      if (_currentSegmentIndex < config.segments.length - 1) {
+      final currentIndex = config.segments.indexOf(currentSegment);
+      if (currentIndex < 0) return;
+
+      if (currentIndex < config.segments.length - 1) {
         // 跳转到下一个区间
-        _currentSegmentIndex++;
-        videoController.seekTo(config.segments[_currentSegmentIndex].start);
+        final nextSegment = config.segments[currentIndex + 1];
+        videoController.seekTo(nextSegment.start);
         final updatedConfig = config.copyWith(
-          currentPlayingSegment: config.segments[_currentSegmentIndex],
+          currentPlayingSegment: nextSegment,
         );
         onSegmentChanged?.call(updatedConfig);
       } else {
@@ -145,21 +131,9 @@ class SegmentPlaybackManager {
     final targetSegment = config.currentPlayingSegment;
     if (targetSegment == null) return;
 
-    // 查找目标区间在列表中的位置
-    final segmentIndex = config.segments.indexWhere(
-      (segment) =>
-          segment.start == targetSegment.start &&
-          segment.end == targetSegment.end,
-    );
-
-    if (segmentIndex >= 0) {
-      _currentSegmentIndex = segmentIndex;
-      videoController.seekTo(config.segments[segmentIndex].start);
-      final updatedConfig = config.copyWith(
-        currentPlayingSegment: config.segments[segmentIndex],
-      );
-      onSegmentChanged?.call(updatedConfig);
-    }
+    videoController.seekTo(targetSegment.start);
+    final updatedConfig = config.copyWith(currentPlayingSegment: targetSegment);
+    onSegmentChanged?.call(updatedConfig);
   }
 
   /// 释放资源

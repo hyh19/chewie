@@ -88,32 +88,23 @@ class _ChewieDemoState extends State<ChewieDemo> {
     final currentSegment = config.currentPlayingSegment;
     if (currentSegment == null) return;
 
-    final segmentIndex = config.segments.indexOf(currentSegment);
-    if (segmentIndex < 0) return;
-
     _videoPlayerController = VideoPlayerController.networkUrl(
       Uri.parse(config.url),
     );
     await _videoPlayerController.initialize();
-    _createChewieController(config: config, segmentIndex: segmentIndex);
-    _setupSegmentManager(config: config, segmentIndex: segmentIndex);
+    _createChewieController(config: config);
+    _setupSegmentManager(config: config);
     setState(() {});
   }
 
-  void _createChewieController({
-    required VideoSegmentConfig config,
-    required int segmentIndex,
-  }) {
+  void _createChewieController({required VideoSegmentConfig config}) {
     _chewieController = ChewieController(
       videoPlayerController: _videoPlayerController,
       autoPlay: true,
       zoomAndPan: true,
       looping: false, // Disable looping for segment playback
 
-      startAt:
-          config.segments.isNotEmpty && segmentIndex < config.segments.length
-          ? config.segments[segmentIndex].start
-          : null,
+      startAt: config.currentPlayingSegment?.start,
 
       additionalOptions: (context) {
         return <OptionItem>[
@@ -129,10 +120,7 @@ class _ChewieDemoState extends State<ChewieDemo> {
     );
   }
 
-  void _setupSegmentManager({
-    required VideoSegmentConfig config,
-    required int segmentIndex,
-  }) {
+  void _setupSegmentManager({required VideoSegmentConfig config}) {
     // 停止旧的管理器
     _segmentManager?.stop();
 
