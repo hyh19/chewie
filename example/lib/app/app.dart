@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 class ChewieDemo extends StatefulWidget {
-  const ChewieDemo({super.key, this.title = 'Chewie Demo'});
-
-  final String title;
+  const ChewieDemo({super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -17,26 +15,20 @@ class ChewieDemo extends StatefulWidget {
 }
 
 class _ChewieDemoState extends State<ChewieDemo> {
-  late VideoPlayerController _videoPlayerController;
+  VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   SegmentPlaybackManager? _segmentManager;
-
-  bool _isPlaylistExpanded = true;
+  VideoSegmentConfig? _currentPlayingConfig;
 
   @override
   void initState() {
     super.initState();
-    // 初始化时将第一个视频的第一个区间设置为当前播放区间
-    final firstConfig = videoConfigs.first;
-    final firstSegment = firstConfig.segments.first;
-    firstConfig.setPlayingSegment(firstSegment);
-    initializePlayer(videoConfigs.first);
   }
 
   @override
   void dispose() {
     _segmentManager?.dispose();
-    _videoPlayerController.dispose();
+    _videoPlayerController?.dispose();
     _chewieController?.dispose();
     super.dispose();
   }
@@ -90,15 +82,25 @@ class _ChewieDemoState extends State<ChewieDemo> {
     _videoPlayerController = VideoPlayerController.networkUrl(
       Uri.parse(config.url),
     );
-    await _videoPlayerController.initialize();
-    _createChewieController(config: config);
-    _setupSegmentManager(config: config);
+    await _videoPlayerController!.initialize();
+    _createChewieController(
+      videoPlayerController: _videoPlayerController!,
+      config: config,
+    );
+    _setupSegmentManager(
+      videoPlayerController: _videoPlayerController!,
+      config: config,
+    );
+    _currentPlayingConfig = config;
     setState(() {});
   }
 
-  void _createChewieController({required VideoSegmentConfig config}) {
+  void _createChewieController({
+    required VideoPlayerController videoPlayerController,
+    required VideoSegmentConfig config,
+  }) {
     _chewieController = ChewieController(
-      videoPlayerController: _videoPlayerController,
+      videoPlayerController: videoPlayerController,
       autoPlay: true,
       zoomAndPan: true,
       looping: false, // Disable looping for segment playback
@@ -119,13 +121,16 @@ class _ChewieDemoState extends State<ChewieDemo> {
     );
   }
 
-  void _setupSegmentManager({required VideoSegmentConfig config}) {
+  void _setupSegmentManager({
+    required VideoPlayerController videoPlayerController,
+    required VideoSegmentConfig config,
+  }) {
     // 停止旧的管理器
     _segmentManager?.stop();
 
     // 创建新的管理器
     _segmentManager = SegmentPlaybackManager(
-      videoController: _videoPlayerController,
+      videoController: videoPlayerController,
       config: config,
       onAllSegmentsComplete: () {
         // 当当前视频的所有区间播放完毕时，切换到下一个视频
@@ -143,15 +148,15 @@ class _ChewieDemoState extends State<ChewieDemo> {
     _segmentManager!.start(config: config);
   }
 
-  VideoSegmentConfig get currentPlayingConfig {
-    return videoConfigs.firstWhere(
-      (config) => config.isPlaying,
-      orElse: () => videoConfigs.first,
-    );
+  VideoSegmentConfig? get currentPlayingConfig {
+    return _currentPlayingConfig;
   }
 
   Future<void> toggleVideo() async {
-    await _videoPlayerController.pause();
+    if (_videoPlayerController == null) return;
+    if (_currentPlayingConfig == null) return;
+
+    await _videoPlayerController!.pause();
 
     // 找到当前播放的配置
     final currentIndex = videoConfigs.indexWhere((config) => config.isPlaying);
@@ -175,15 +180,18 @@ class _ChewieDemoState extends State<ChewieDemo> {
     // 检查是否切换到不同视频
     final currentConfig = currentPlayingConfig;
 
+    if (currentConfig == null) {
+      // 如果没有正在播放的视频，直接初始化播放选中的视频
+      await initializePlayer(config);
+      return;
+    }
+
     if (config.url != currentConfig.url) {
       // 切换视频：重置当前视频状态，设置新视频区间
       currentConfig.reset();
 
       // 切换视频：更新配置并初始化播放器
-      final index = videoConfigs.indexWhere((c) => c.url == config.url);
-      if (index >= 0) {
-        await initializePlayer(videoConfigs[index]);
-      }
+      await initializePlayer(config);
     } else {
       // 同一视频，直接跳转到指定区间
       _segmentManager?.jumpToSegment(config);
@@ -195,27 +203,8 @@ class _ChewieDemoState extends State<ChewieDemo> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return MaterialApp(
-      title: widget.title,
       theme: AppTheme.light,
       home: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-          actions: [
-            IconButton(
-              icon: Icon(
-                _isPlaylistExpanded
-                    ? Icons.keyboard_arrow_down
-                    : Icons.keyboard_arrow_up,
-              ),
-              onPressed: () {
-                setState(() {
-                  _isPlaylistExpanded = !_isPlaylistExpanded;
-                });
-              },
-              tooltip: _isPlaylistExpanded ? '收起列表' : '展开列表',
-            ),
-          ],
-        ),
         body: Column(
           children: <Widget>[
             // 播放器区域（正方形）
@@ -241,48 +230,45 @@ class _ChewieDemoState extends State<ChewieDemo> {
                     ),
             ),
             // 播放列表区域
-            if (_isPlaylistExpanded)
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade300),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.playlist_play,
-                              size: 20,
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.playlist_play,
+                            size: 20,
+                            color: Colors.grey.shade700,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '播放列表',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                               color: Colors.grey.shade700,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '播放列表',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      Expanded(
-                        child: VideoPlaylistWidget(
-                          videoConfigs: videoConfigs,
-                          onSegmentSelected: _onSegmentSelected,
-                        ),
+                    ),
+                    Expanded(
+                      child: VideoPlaylistWidget(
+                        videoConfigs: videoConfigs,
+                        onSegmentSelected: _onSegmentSelected,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),
