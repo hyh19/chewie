@@ -146,10 +146,7 @@ class SegmentPlaybackManager {
   /// 跳转到指定区间
   void jumpToSegment(VideoSegmentConfig config) {
     final targetSegment = config.currentPlayingSegment;
-    if (targetSegment == null) return;
-
-    config.setPlayingSegment(targetSegment);
-    videoController.seekTo(targetSegment.start);
+    videoController.seekTo(targetSegment!.start);
     onSegmentChanged?.call(config);
   }
 
