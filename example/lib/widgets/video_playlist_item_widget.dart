@@ -57,11 +57,8 @@ class VideoPlaylistItemWidget extends StatelessWidget {
           style: const TextStyle(fontSize: 12),
         ),
         children: config.segments.map((segment) {
-          final segmentIndex = config.segments.indexOf(segment);
-
           return SegmentItemWidget(
             segment: segment,
-            segmentIndex: segmentIndex,
             onTap: () {
               onSegmentSelected(config, segment);
             },

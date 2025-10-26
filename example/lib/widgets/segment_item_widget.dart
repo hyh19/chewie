@@ -8,12 +8,10 @@ class SegmentItemWidget extends StatelessWidget {
   const SegmentItemWidget({
     super.key,
     required this.segment,
-    required this.segmentIndex,
     required this.onTap,
   });
 
   final PlaybackSegment segment;
-  final int segmentIndex;
   final VoidCallback onTap;
 
   /// 格式化时间显示
@@ -39,15 +37,13 @@ class SegmentItemWidget extends StatelessWidget {
             : Colors.grey.shade300,
       ),
       title: Text(
-        '区间 ${segmentIndex + 1}',
+        '${_formatDuration(segment.start)} - ${_formatDuration(segment.end)}',
         style: TextStyle(
           fontWeight: segment.isPlaying ? FontWeight.bold : FontWeight.normal,
           color: segment.isPlaying ? Theme.of(context).primaryColor : null,
+          fontFamily: 'monospace',
+          fontSize: 13,
         ),
-      ),
-      subtitle: Text(
-        '${_formatDuration(segment.start)} - ${_formatDuration(segment.end)}',
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
       ),
       trailing: segment.isPlaying
           ? Icon(Icons.play_arrow, color: Theme.of(context).primaryColor)
