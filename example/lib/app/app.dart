@@ -21,13 +21,17 @@ class _ChewieDemoState extends State<ChewieDemo> {
   ChewieController? _chewieController;
   SegmentPlaybackManager? _segmentManager;
 
-  int _currentSegmentIndex = 0;
   bool _isPlaylistExpanded = true;
 
   @override
   void initState() {
     super.initState();
-    initializePlayer(videoIndex: 0, segmentIndex: 0);
+    // 初始化时将第一个视频的第一个区间设置为当前播放区间
+    final firstConfig = videoConfigs.first;
+    final firstSegment = firstConfig.segments.first;
+    initializePlayer(
+      videoConfigs.first.copyWith(currentPlayingSegment: firstSegment),
+    );
   }
 
   @override
@@ -80,30 +84,26 @@ class _ChewieDemoState extends State<ChewieDemo> {
     ),
   ];
 
-  Future<void> initializePlayer({
-    required int videoIndex,
-    required int segmentIndex,
-  }) async {
-    // 更新全局状态
-    currPlayIndex = videoIndex;
+  Future<void> initializePlayer(VideoSegmentConfig config) async {
+    final currentSegment = config.currentPlayingSegment;
+    if (currentSegment == null) return;
 
-    final currentConfig = videoConfigs[videoIndex];
+    final segmentIndex = config.segments.indexOf(currentSegment);
+    if (segmentIndex < 0) return;
 
     _videoPlayerController = VideoPlayerController.networkUrl(
-      Uri.parse(currentConfig.url),
+      Uri.parse(config.url),
     );
     await _videoPlayerController.initialize();
-    _createChewieController(videoIndex: videoIndex, segmentIndex: segmentIndex);
-    _setupSegmentManager(videoIndex: videoIndex, segmentIndex: segmentIndex);
+    _createChewieController(config: config, segmentIndex: segmentIndex);
+    _setupSegmentManager(config: config, segmentIndex: segmentIndex);
     setState(() {});
   }
 
   void _createChewieController({
-    required int videoIndex,
+    required VideoSegmentConfig config,
     required int segmentIndex,
   }) {
-    final currentConfig = videoConfigs[videoIndex];
-
     _chewieController = ChewieController(
       videoPlayerController: _videoPlayerController,
       autoPlay: true,
@@ -111,9 +111,8 @@ class _ChewieDemoState extends State<ChewieDemo> {
       looping: false, // Disable looping for segment playback
 
       startAt:
-          currentConfig.segments.isNotEmpty &&
-              segmentIndex < currentConfig.segments.length
-          ? currentConfig.segments[segmentIndex].start
+          config.segments.isNotEmpty && segmentIndex < config.segments.length
+          ? config.segments[segmentIndex].start
           : null,
 
       additionalOptions: (context) {
@@ -131,32 +130,29 @@ class _ChewieDemoState extends State<ChewieDemo> {
   }
 
   void _setupSegmentManager({
-    required int videoIndex,
+    required VideoSegmentConfig config,
     required int segmentIndex,
   }) {
-    final currentConfig = videoConfigs[videoIndex];
-
     // 停止旧的管理器
     _segmentManager?.stop();
-
-    // 设置当前区间索引
-    _currentSegmentIndex = segmentIndex;
-    if (mounted) {
-      setState(() {});
-    }
 
     // 创建新的管理器
     _segmentManager = SegmentPlaybackManager(
       videoController: _videoPlayerController,
-      segments: currentConfig.segments,
+      segments: config.segments,
+      config: config,
       onAllSegmentsComplete: () {
         // 当当前视频的所有区间播放完毕时，切换到下一个视频
         toggleVideo();
       },
-      onSegmentChanged: (index) {
+      onSegmentChanged: (updatedConfig) {
         if (mounted) {
           setState(() {
-            _currentSegmentIndex = index;
+            // 更新对应配置的当前播放区间
+            final index = videoConfigs.indexWhere((c) => c.url == config.url);
+            if (index >= 0) {
+              videoConfigs[index] = updatedConfig;
+            }
           });
         }
       },
@@ -166,25 +162,51 @@ class _ChewieDemoState extends State<ChewieDemo> {
     _segmentManager!.start(initialSegmentIndex: segmentIndex);
   }
 
-  int currPlayIndex = 0;
+  VideoSegmentConfig get currentPlayingConfig {
+    return videoConfigs.firstWhere(
+      (config) => config.currentPlayingSegment != null,
+      orElse: () => videoConfigs.first,
+    );
+  }
 
   Future<void> toggleVideo() async {
     await _videoPlayerController.pause();
-    final nextVideoIndex = (currPlayIndex + 1) % videoConfigs.length;
-    await initializePlayer(videoIndex: nextVideoIndex, segmentIndex: 0);
+
+    // 找到当前播放的配置
+    final currentIndex = videoConfigs.indexWhere(
+      (config) => config.currentPlayingSegment != null,
+    );
+
+    // 切换到下一个视频
+    final nextIndex = (currentIndex + 1) % videoConfigs.length;
+    final nextConfig = videoConfigs[nextIndex];
+    final firstSegment = nextConfig.segments.first;
+
+    // 更新配置并初始化播放器
+    videoConfigs[nextIndex] = nextConfig.copyWith(
+      currentPlayingSegment: firstSegment,
+    );
+    await initializePlayer(videoConfigs[nextIndex]);
   }
 
-  void _onSegmentSelected(int videoIndex, int segmentIndex) async {
-    // 如果选择的是不同视频，先切换视频
-    if (videoIndex != currPlayIndex) {
-      await initializePlayer(
-        videoIndex: videoIndex,
-        segmentIndex: segmentIndex,
-      );
+  void _onSegmentSelected(
+    VideoSegmentConfig config,
+    PlaybackSegment segment,
+  ) async {
+    // 检查是否切换到不同视频
+    final currentConfig = currentPlayingConfig;
+
+    if (config.url != currentConfig.url) {
+      // 切换视频：更新配置并初始化播放器
+      final index = videoConfigs.indexWhere((c) => c.url == config.url);
+      if (index >= 0) {
+        videoConfigs[index] = config.copyWith(currentPlayingSegment: segment);
+        await initializePlayer(videoConfigs[index]);
+      }
     } else {
       // 同一视频，直接跳转到指定区间
-      if (_segmentManager != null &&
-          segmentIndex < videoConfigs[videoIndex].segments.length) {
+      final segmentIndex = config.segments.indexOf(segment);
+      if (_segmentManager != null && segmentIndex >= 0) {
         _segmentManager!.jumpToSegment(segmentIndex);
       }
     }
@@ -276,8 +298,6 @@ class _ChewieDemoState extends State<ChewieDemo> {
                       Expanded(
                         child: VideoPlaylistWidget(
                           videoConfigs: videoConfigs,
-                          currentVideoIndex: currPlayIndex,
-                          currentSegmentIndex: _currentSegmentIndex,
                           onSegmentSelected: _onSegmentSelected,
                         ),
                       ),

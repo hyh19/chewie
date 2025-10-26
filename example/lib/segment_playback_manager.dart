@@ -14,10 +14,29 @@ class PlaybackSegment {
 
 /// 视频及其播放区间的配置
 class VideoSegmentConfig {
-  const VideoSegmentConfig({required this.url, required this.segments});
+  const VideoSegmentConfig({
+    required this.url,
+    required this.segments,
+    this.currentPlayingSegment,
+  });
 
   final String url;
   final List<PlaybackSegment> segments;
+  final PlaybackSegment? currentPlayingSegment;
+
+  /// 创建配置的副本并更新指定字段
+  VideoSegmentConfig copyWith({
+    String? url,
+    List<PlaybackSegment>? segments,
+    PlaybackSegment? currentPlayingSegment,
+  }) {
+    return VideoSegmentConfig(
+      url: url ?? this.url,
+      segments: segments ?? this.segments,
+      currentPlayingSegment:
+          currentPlayingSegment ?? this.currentPlayingSegment,
+    );
+  }
 }
 
 /// 视频区间播放管理器
@@ -31,14 +50,16 @@ class SegmentPlaybackManager {
   SegmentPlaybackManager({
     required this.videoController,
     required this.segments,
+    required this.config,
     this.onAllSegmentsComplete,
     this.onSegmentChanged,
   });
 
   final VideoPlayerController videoController;
   final List<PlaybackSegment> segments;
+  final VideoSegmentConfig config;
   final void Function()? onAllSegmentsComplete;
-  final void Function(int index)? onSegmentChanged;
+  final void Function(VideoSegmentConfig config)? onSegmentChanged;
 
   int _currentSegmentIndex = 0;
   bool _isActive = false;
@@ -55,7 +76,10 @@ class SegmentPlaybackManager {
     // 跳转到指定区间的起始位置
     if (segments.isNotEmpty && initialSegmentIndex < segments.length) {
       videoController.seekTo(segments[initialSegmentIndex].start);
-      onSegmentChanged?.call(initialSegmentIndex);
+      final updatedConfig = config.copyWith(
+        currentPlayingSegment: segments[initialSegmentIndex],
+      );
+      onSegmentChanged?.call(updatedConfig);
     }
   }
 
@@ -77,11 +101,16 @@ class SegmentPlaybackManager {
         // 跳转到下一个区间
         _currentSegmentIndex++;
         videoController.seekTo(segments[_currentSegmentIndex].start);
-        onSegmentChanged?.call(_currentSegmentIndex);
+        final updatedConfig = config.copyWith(
+          currentPlayingSegment: segments[_currentSegmentIndex],
+        );
+        onSegmentChanged?.call(updatedConfig);
       } else {
         // 所有区间播放完毕
         stop();
         videoController.pause();
+        final updatedConfig = config.copyWith(currentPlayingSegment: null);
+        onSegmentChanged?.call(updatedConfig);
         onAllSegmentsComplete?.call();
       }
     }
@@ -96,7 +125,10 @@ class SegmentPlaybackManager {
     if (index >= 0 && index < segments.length) {
       _currentSegmentIndex = index;
       videoController.seekTo(segments[index].start);
-      onSegmentChanged?.call(index);
+      final updatedConfig = config.copyWith(
+        currentPlayingSegment: segments[index],
+      );
+      onSegmentChanged?.call(updatedConfig);
     }
   }
 
