@@ -13,8 +13,7 @@ class VideoPlaylistWidget extends StatelessWidget {
   });
 
   final List<VideoSegmentConfig> videoConfigs;
-  final void Function(VideoSegmentConfig config, PlaybackSegment segment)
-  onSegmentSelected;
+  final void Function(VideoSegmentConfig config) onSegmentSelected;
 
   @override
   Widget build(BuildContext context) {

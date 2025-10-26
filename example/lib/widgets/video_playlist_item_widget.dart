@@ -13,8 +13,7 @@ class VideoPlaylistItemWidget extends StatelessWidget {
   });
 
   final VideoSegmentConfig config;
-  final void Function(VideoSegmentConfig config, PlaybackSegment segment)
-  onSegmentSelected;
+  final void Function(VideoSegmentConfig config) onSegmentSelected;
 
   /// 从 URL 中提取文件名
   String _extractFileName(String url) {
@@ -60,7 +59,8 @@ class VideoPlaylistItemWidget extends StatelessWidget {
           return SegmentItemWidget(
             segment: segment,
             onTap: () {
-              onSegmentSelected(config, segment);
+              config.setPlayingSegment(segment);
+              onSegmentSelected(config);
             },
           );
         }).toList(),

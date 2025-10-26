@@ -171,10 +171,7 @@ class _ChewieDemoState extends State<ChewieDemo> {
     await initializePlayer(videoConfigs[nextIndex]);
   }
 
-  void _onSegmentSelected(
-    VideoSegmentConfig config,
-    PlaybackSegment segment,
-  ) async {
+  void _onSegmentSelected(VideoSegmentConfig config) async {
     // 检查是否切换到不同视频
     final currentConfig = currentPlayingConfig;
 
@@ -185,12 +182,10 @@ class _ChewieDemoState extends State<ChewieDemo> {
       // 切换视频：更新配置并初始化播放器
       final index = videoConfigs.indexWhere((c) => c.url == config.url);
       if (index >= 0) {
-        config.setPlayingSegment(segment);
         await initializePlayer(videoConfigs[index]);
       }
     } else {
       // 同一视频，直接跳转到指定区间
-      config.setPlayingSegment(segment);
       _segmentManager?.jumpToSegment(config);
     }
   }
