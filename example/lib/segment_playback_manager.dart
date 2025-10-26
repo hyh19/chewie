@@ -2,10 +2,10 @@ import 'package:video_player/video_player.dart';
 
 /// 表示一个视频播放的时间区间
 class PlaybackSegment {
+  const PlaybackSegment({required this.start, required this.end});
+
   final Duration start;
   final Duration end;
-
-  const PlaybackSegment({required this.start, required this.end});
 
   bool contains(Duration position) {
     return position >= start && position <= end;
@@ -14,10 +14,10 @@ class PlaybackSegment {
 
 /// 视频及其播放区间的配置
 class VideoSegmentConfig {
+  const VideoSegmentConfig({required this.url, required this.segments});
+
   final String url;
   final List<PlaybackSegment> segments;
-
-  const VideoSegmentConfig({required this.url, required this.segments});
 }
 
 /// 视频区间播放管理器
@@ -28,18 +28,23 @@ class VideoSegmentConfig {
 /// - 在区间外时自动跳回区间内
 /// - 所有区间播放完毕后触发回调
 class SegmentPlaybackManager {
-  final VideoPlayerController videoController;
-  final List<PlaybackSegment> segments;
-  final void Function()? onAllSegmentsComplete;
-
-  int _currentSegmentIndex = 0;
-  bool _isActive = false;
-
   SegmentPlaybackManager({
     required this.videoController,
     required this.segments,
     this.onAllSegmentsComplete,
+    this.onSegmentChanged,
   });
+
+  final VideoPlayerController videoController;
+  final List<PlaybackSegment> segments;
+  final void Function()? onAllSegmentsComplete;
+  final void Function(int index)? onSegmentChanged;
+
+  int _currentSegmentIndex = 0;
+  bool _isActive = false;
+
+  /// 获取当前区间索引
+  int get currentSegmentIndex => _currentSegmentIndex;
 
   /// 启动区间播放管理
   void start() {
@@ -50,6 +55,7 @@ class SegmentPlaybackManager {
     // 跳转到第一个区间的起始位置
     if (segments.isNotEmpty) {
       videoController.seekTo(segments[0].start);
+      onSegmentChanged?.call(0);
     }
   }
 
@@ -71,6 +77,7 @@ class SegmentPlaybackManager {
         // 跳转到下一个区间
         _currentSegmentIndex++;
         videoController.seekTo(segments[_currentSegmentIndex].start);
+        onSegmentChanged?.call(_currentSegmentIndex);
       } else {
         // 所有区间播放完毕
         stop();
@@ -81,6 +88,15 @@ class SegmentPlaybackManager {
     // 用户拖动到区间之前
     else if (position < currentSegment.start) {
       videoController.seekTo(currentSegment.start);
+    }
+  }
+
+  /// 跳转到指定区间
+  void jumpToSegment(int index) {
+    if (index >= 0 && index < segments.length) {
+      _currentSegmentIndex = index;
+      videoController.seekTo(segments[index].start);
+      onSegmentChanged?.call(index);
     }
   }
 
