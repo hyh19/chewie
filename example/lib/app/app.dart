@@ -38,12 +38,16 @@ class _ChewieDemoState extends State<ChewieDemo> {
       url: "http://192.168.31.174:3923/Downloads/VolkswagenGTIReview.mp4",
       segments: [
         PlaybackSegment(
-          start: const Duration(minutes: 1),
-          end: const Duration(minutes: 2),
+          start: const Duration(seconds: 15),
+          end: const Duration(seconds: 30),
         ),
         PlaybackSegment(
-          start: const Duration(minutes: 4),
-          end: const Duration(minutes: 5),
+          start: const Duration(seconds: 45),
+          end: const Duration(minutes: 1, seconds: 0),
+        ),
+        PlaybackSegment(
+          start: const Duration(minutes: 1, seconds: 15),
+          end: const Duration(minutes: 1, seconds: 30),
         ),
       ],
     ),
@@ -51,12 +55,16 @@ class _ChewieDemoState extends State<ChewieDemo> {
       url: "http://192.168.31.174:3923/Downloads/TearsOfSteel.mp4",
       segments: [
         PlaybackSegment(
-          start: const Duration(minutes: 0, seconds: 30),
-          end: const Duration(minutes: 1, seconds: 30),
+          start: const Duration(seconds: 30),
+          end: const Duration(seconds: 45),
         ),
         PlaybackSegment(
-          start: const Duration(minutes: 2),
-          end: const Duration(minutes: 3),
+          start: const Duration(minutes: 1, seconds: 0),
+          end: const Duration(minutes: 1, seconds: 15),
+        ),
+        PlaybackSegment(
+          start: const Duration(minutes: 1, seconds: 30),
+          end: const Duration(minutes: 1, seconds: 45),
         ),
       ],
     ),
@@ -64,12 +72,16 @@ class _ChewieDemoState extends State<ChewieDemo> {
       url: "http://192.168.31.174:3923/Downloads/Sintel.mp4",
       segments: [
         PlaybackSegment(
-          start: const Duration(seconds: 10),
-          end: const Duration(seconds: 40),
+          start: const Duration(seconds: 20),
+          end: const Duration(seconds: 35),
+        ),
+        PlaybackSegment(
+          start: const Duration(seconds: 50),
+          end: const Duration(minutes: 1, seconds: 5),
         ),
         PlaybackSegment(
           start: const Duration(minutes: 1, seconds: 30),
-          end: const Duration(minutes: 2, seconds: 30),
+          end: const Duration(minutes: 1, seconds: 45),
         ),
       ],
     ),
