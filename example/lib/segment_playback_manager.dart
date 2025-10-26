@@ -47,15 +47,15 @@ class SegmentPlaybackManager {
   int get currentSegmentIndex => _currentSegmentIndex;
 
   /// 启动区间播放管理
-  void start() {
+  void start({required int initialSegmentIndex}) {
     _isActive = true;
-    _currentSegmentIndex = 0;
+    _currentSegmentIndex = initialSegmentIndex;
     videoController.addListener(_onPositionChanged);
 
-    // 跳转到第一个区间的起始位置
-    if (segments.isNotEmpty) {
-      videoController.seekTo(segments[0].start);
-      onSegmentChanged?.call(0);
+    // 跳转到指定区间的起始位置
+    if (segments.isNotEmpty && initialSegmentIndex < segments.length) {
+      videoController.seekTo(segments[initialSegmentIndex].start);
+      onSegmentChanged?.call(initialSegmentIndex);
     }
   }
 

@@ -10,14 +10,12 @@ class VideoPlaylistWidget extends StatelessWidget {
     required this.videoConfigs,
     required this.currentVideoIndex,
     required this.currentSegmentIndex,
-    required this.onVideoSelected,
     required this.onSegmentSelected,
   });
 
   final List<VideoSegmentConfig> videoConfigs;
   final int currentVideoIndex;
   final int currentSegmentIndex;
-  final void Function(int videoIndex) onVideoSelected;
   final void Function(int videoIndex, int segmentIndex) onSegmentSelected;
 
   /// 格式化时间显示
@@ -115,9 +113,6 @@ class VideoPlaylistWidget extends StatelessWidget {
                       )
                     : null,
                 onTap: () {
-                  if (videoIndex != currentVideoIndex) {
-                    onVideoSelected(videoIndex);
-                  }
                   onSegmentSelected(videoIndex, segmentIndex);
                 },
               );

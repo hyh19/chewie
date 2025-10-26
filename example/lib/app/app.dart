@@ -27,7 +27,7 @@ class _ChewieDemoState extends State<ChewieDemo> {
   @override
   void initState() {
     super.initState();
-    initializePlayer();
+    initializePlayer(videoIndex: 0, segmentIndex: 0);
   }
 
   @override
@@ -80,20 +80,29 @@ class _ChewieDemoState extends State<ChewieDemo> {
     ),
   ];
 
-  Future<void> initializePlayer() async {
-    final currentConfig = videoConfigs[currPlayIndex];
+  Future<void> initializePlayer({
+    required int videoIndex,
+    required int segmentIndex,
+  }) async {
+    // 更新全局状态
+    currPlayIndex = videoIndex;
+
+    final currentConfig = videoConfigs[videoIndex];
 
     _videoPlayerController = VideoPlayerController.networkUrl(
       Uri.parse(currentConfig.url),
     );
     await _videoPlayerController.initialize();
-    _createChewieController();
-    _setupSegmentManager();
+    _createChewieController(videoIndex: videoIndex, segmentIndex: segmentIndex);
+    _setupSegmentManager(videoIndex: videoIndex, segmentIndex: segmentIndex);
     setState(() {});
   }
 
-  void _createChewieController() {
-    final currentConfig = videoConfigs[currPlayIndex];
+  void _createChewieController({
+    required int videoIndex,
+    required int segmentIndex,
+  }) {
+    final currentConfig = videoConfigs[videoIndex];
 
     _chewieController = ChewieController(
       videoPlayerController: _videoPlayerController,
@@ -101,8 +110,10 @@ class _ChewieDemoState extends State<ChewieDemo> {
       zoomAndPan: true,
       looping: false, // Disable looping for segment playback
 
-      startAt: currentConfig.segments.isNotEmpty
-          ? currentConfig.segments[0].start
+      startAt:
+          currentConfig.segments.isNotEmpty &&
+              segmentIndex < currentConfig.segments.length
+          ? currentConfig.segments[segmentIndex].start
           : null,
 
       additionalOptions: (context) {
@@ -119,14 +130,17 @@ class _ChewieDemoState extends State<ChewieDemo> {
     );
   }
 
-  void _setupSegmentManager() {
-    final currentConfig = videoConfigs[currPlayIndex];
+  void _setupSegmentManager({
+    required int videoIndex,
+    required int segmentIndex,
+  }) {
+    final currentConfig = videoConfigs[videoIndex];
 
     // 停止旧的管理器
     _segmentManager?.stop();
 
-    // 重置当前区间索引
-    _currentSegmentIndex = 0;
+    // 设置当前区间索引
+    _currentSegmentIndex = segmentIndex;
     if (mounted) {
       setState(() {});
     }
@@ -149,37 +163,24 @@ class _ChewieDemoState extends State<ChewieDemo> {
     );
 
     // 启动管理器
-    _segmentManager!.start();
+    _segmentManager!.start(initialSegmentIndex: segmentIndex);
   }
 
   int currPlayIndex = 0;
 
   Future<void> toggleVideo() async {
     await _videoPlayerController.pause();
-    currPlayIndex += 1;
-    if (currPlayIndex >= videoConfigs.length) {
-      currPlayIndex = 0;
-    }
-    await initializePlayer();
-  }
-
-  void _onVideoSelected(int index) {
-    if (index != currPlayIndex) {
-      currPlayIndex = index;
-      initializePlayer();
-    }
+    final nextVideoIndex = (currPlayIndex + 1) % videoConfigs.length;
+    await initializePlayer(videoIndex: nextVideoIndex, segmentIndex: 0);
   }
 
   void _onSegmentSelected(int videoIndex, int segmentIndex) async {
     // 如果选择的是不同视频，先切换视频
     if (videoIndex != currPlayIndex) {
-      currPlayIndex = videoIndex;
-      await initializePlayer();
-      // 等待初始化完成后跳转到指定区间
-      if (_segmentManager != null &&
-          segmentIndex < videoConfigs[videoIndex].segments.length) {
-        _segmentManager!.jumpToSegment(segmentIndex);
-      }
+      await initializePlayer(
+        videoIndex: videoIndex,
+        segmentIndex: segmentIndex,
+      );
     } else {
       // 同一视频，直接跳转到指定区间
       if (_segmentManager != null &&
@@ -277,7 +278,6 @@ class _ChewieDemoState extends State<ChewieDemo> {
                           videoConfigs: videoConfigs,
                           currentVideoIndex: currPlayIndex,
                           currentSegmentIndex: _currentSegmentIndex,
-                          onVideoSelected: _onVideoSelected,
                           onSegmentSelected: _onSegmentSelected,
                         ),
                       ),
