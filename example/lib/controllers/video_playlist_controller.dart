@@ -194,19 +194,7 @@ class VideoPlaylistController extends GetxController {
       autoPlay: true,
       zoomAndPan: true,
       looping: false, // Disable looping for segment playback
-
       startAt: config.currentPlayingSegment.value?.start,
-
-      additionalOptions: (context) {
-        return <OptionItem>[
-          OptionItem(
-            onTap: (context) => toggleVideo(),
-            iconData: Icons.live_tv_sharp,
-            title: 'Toggle Video Src',
-          ),
-        ];
-      },
-
       hideControlsTimer: const Duration(seconds: 600),
     );
   }
@@ -252,7 +240,8 @@ class VideoPlaylistController extends GetxController {
         _stopSegmentPlayback();
         _videoPlayerController!.pause();
         config.reset();
-        toggleVideo();
+        final nextConfig = config.nextVideo;
+        switchToVideo(nextConfig);
       } else {
         // 还有后续区间，跳转到下一个区间
         config.setPlayingSegment(nextSegment);
@@ -282,24 +271,18 @@ class VideoPlaylistController extends GetxController {
     });
   }
 
-  /// 切换视频
-  Future<void> toggleVideo() async {
-    if (currentPlayingConfig.value == null) return;
+  /// 切换到指定视频
+  ///
+  /// [newConfig] 要切换到的视频配置
+  Future<void> switchToVideo(VideoSegmentConfig newConfig) async {
+    // 重置当前视频状态(如果存在)
+    currentPlayingConfig.value?.reset();
 
-    // 获取当前配置
-    final currentConfig = currentPlayingConfig.value!;
+    // 设置新的播放配置
+    currentPlayingConfig.value = newConfig;
 
-    // 重置当前视频状态
-    currentConfig.reset();
-
-    // 使用循环链表直接获取下一个视频
-    final nextConfig = currentConfig.nextVideo;
-    final firstSegment = nextConfig.segments.first;
-
-    // 设置新的播放区间
-    nextConfig.setPlayingSegment(firstSegment);
-    currentPlayingConfig.value = nextConfig;
-    await initializePlayer(nextConfig);
+    // initializePlayer 会自动处理区间选择逻辑
+    await initializePlayer(newConfig);
   }
 
   /// 处理区间点击
