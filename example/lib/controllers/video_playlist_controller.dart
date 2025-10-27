@@ -136,7 +136,6 @@ class VideoPlaylistController extends GetxController {
       videoPlayerController: _videoPlayerController!,
       config: config,
     );
-    currentPlayingConfig.value = config;
   }
 
   /// 创建 Chewie 控制器
@@ -225,7 +224,8 @@ class VideoPlaylistController extends GetxController {
 
     // 设置新的播放区间
     nextConfig.setPlayingSegment(firstSegment);
-    await initializePlayer(videoConfigs[nextIndex]);
+    currentPlayingConfig.value = nextConfig;
+    await initializePlayer(nextConfig);
   }
 
   /// 处理区间点击
@@ -237,24 +237,18 @@ class VideoPlaylistController extends GetxController {
 
   /// 处理区间选择
   void onSegmentSelected(VideoSegmentConfig config) async {
-    // 检查是否切换到不同视频
     final currentConfig = currentPlayingConfig.value;
 
-    if (currentConfig == null) {
-      // 如果没有正在播放的视频，先设置配置，再初始化播放器
+    // 直接比较配置是否相等（包括 null 情况）
+    if (currentConfig != config) {
+      // 不相等：切换新视频
+      // 重置旧配置状态（如果存在）
+      currentConfig?.reset();
+      // 赋值新配置
       currentPlayingConfig.value = config;
       await initializePlayer(config);
-      return;
-    }
-
-    if (config.url != currentConfig.url) {
-      // 切换视频：重置当前视频状态，设置新视频区间
-      currentConfig.reset();
-
-      // 切换视频：更新配置并初始化播放器
-      await initializePlayer(config);
     } else {
-      // 同一视频，直接跳转到指定区间
+      // 相等：同一视频，直接跳转到指定区间
       _segmentManager?.jumpToSegment(config);
     }
   }
