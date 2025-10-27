@@ -26,9 +26,6 @@ class VideoPlaylistController extends GetxController {
   // Chewie 控制器
   ChewieController? _chewieController;
 
-  // 区间播放状态
-  bool _isSegmentPlaybackActive = false;
-
   // 手动跳转标志（用于防止位置监听器干扰手动跳转）
   bool _isManualSeeking = false;
 
@@ -168,9 +165,6 @@ class VideoPlaylistController extends GetxController {
     _videoPlayerController!.addListener(_updateInitializedState);
     _updateInitializedState();
 
-    // 启动区间播放管理
-    _isSegmentPlaybackActive = true;
-
     // 根据是否有区间来确定播放起点
     if (config.segments.isEmpty) {
       // 没有区间，从 0 秒开始播放
@@ -227,7 +221,6 @@ class VideoPlaylistController extends GetxController {
 
   /// 停止区间播放管理
   void _stopSegmentPlayback() {
-    _isSegmentPlaybackActive = false;
     _isManualSeeking = false; // 重置手动跳转标志
     _videoPlayerController?.removeListener(_onPositionChanged);
   }
@@ -238,9 +231,7 @@ class VideoPlaylistController extends GetxController {
     if (_isManualSeeking) return;
 
     final config = currentPlayingConfig.value;
-    if (!_isSegmentPlaybackActive ||
-        config == null ||
-        config.segments.isEmpty) {
+    if (config == null || config.segments.isEmpty) {
       return;
     }
 
