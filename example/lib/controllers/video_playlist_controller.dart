@@ -202,40 +202,40 @@ class VideoPlaylistController extends GetxController {
 
   /// 监听播放位置变化
   void _onPositionChanged() {
-    final config = currentPlayingConfig.value;
-    if (!_isSegmentPlaybackActive ||
-        config == null ||
-        config.segments.isEmpty) {
-      return;
-    }
-
-    final position = _videoPlayerController!.value.position;
-    final currentSegment = config.currentPlayingSegment.value;
-    if (currentSegment == null) return;
-
-    // 超出当前区间结束时间
-    if (position > currentSegment.end) {
-      final currentIndex = config.segments.indexOf(currentSegment);
-      if (currentIndex < 0) return;
-
-      if (currentIndex < config.segments.length - 1) {
-        // 跳转到下一个区间
-        final nextSegment = config.segments[currentIndex + 1];
-        config.setPlayingSegment(nextSegment);
-        _videoPlayerController!.seekTo(nextSegment.start);
-      } else {
-        // 所有区间播放完毕
-        _stopSegmentPlayback();
-        _videoPlayerController!.pause();
-        config.reset();
-        // 当当前视频的所有区间播放完毕时，切换到下一个视频
-        toggleVideo();
-      }
-    }
-    // 用户拖动到区间之前
-    else if (position < currentSegment.start) {
-      _videoPlayerController!.seekTo(currentSegment.start);
-    }
+    // final config = currentPlayingConfig.value;
+    // if (!_isSegmentPlaybackActive ||
+    //     config == null ||
+    //     config.segments.isEmpty) {
+    //   return;
+    // }
+    //
+    // final position = _videoPlayerController!.value.position;
+    // final currentSegment = config.currentPlayingSegment.value;
+    // if (currentSegment == null) return;
+    //
+    // // 超出当前区间结束时间
+    // if (position > currentSegment.end) {
+    //   final currentIndex = config.segments.indexOf(currentSegment);
+    //   if (currentIndex < 0) return;
+    //
+    //   if (currentIndex < config.segments.length - 1) {
+    //     // 跳转到下一个区间
+    //     final nextSegment = config.segments[currentIndex + 1];
+    //     config.setPlayingSegment(nextSegment);
+    //     _videoPlayerController!.seekTo(nextSegment.start);
+    //   } else {
+    //     // 所有区间播放完毕
+    //     _stopSegmentPlayback();
+    //     _videoPlayerController!.pause();
+    //     config.reset();
+    //     // 当当前视频的所有区间播放完毕时，切换到下一个视频
+    //     toggleVideo();
+    //   }
+    // }
+    // // 用户拖动到区间之前
+    // else if (position < currentSegment.start) {
+    //   _videoPlayerController!.seekTo(currentSegment.start);
+    // }
   }
 
   /// 跳转到指定区间
