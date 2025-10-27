@@ -29,6 +29,9 @@ class VideoPlaylistController extends GetxController {
   // 手动跳转标志（用于防止位置监听器干扰手动跳转）
   bool _isManualSeeking = false;
 
+  // 视频切换中标志（防止重复触发）
+  bool _isSwitchingVideo = false;
+
   // Getter: 获取 chewieController
   ChewieController? get chewieController => _chewieController;
 
@@ -129,19 +132,20 @@ class VideoPlaylistController extends GetxController {
 
   /// 清理旧的播放器资源
   Future<void> _disposeOldPlayer() async {
+    _isSwitchingVideo = false; // 重置切换标志
     _isManualSeeking = false; // 重置手动跳转标志
     _videoPlayerController?.removeListener(_onPositionChanged);
 
     // 移除监听器
     _videoPlayerController?.removeListener(_updateInitializedState);
 
-    // 释放 Chewie 控制器
-    _chewieController?.dispose();
-    _chewieController = null;
-
-    // 释放视频播放器控制器
+    // 先释放视频播放器控制器
     await _videoPlayerController?.dispose();
     _videoPlayerController = null;
+
+    // 再释放 Chewie 控制器
+    _chewieController?.dispose();
+    _chewieController = null;
 
     // 更新初始化状态
     isInitialized.value = false;
@@ -215,8 +219,8 @@ class VideoPlaylistController extends GetxController {
 
   /// 监听播放位置变化
   void _onPositionChanged() {
-    // 如果正在手动跳转，则不进行自动纠正
-    if (_isManualSeeking) return;
+    // 如果正在手动跳转或正在切换视频，则不进行自动纠正
+    if (_isManualSeeking || _isSwitchingVideo) return;
 
     final config = currentPlayingConfig.value;
     if (config == null || config.segments.isEmpty) {
@@ -237,10 +241,16 @@ class VideoPlaylistController extends GetxController {
 
       if (isLastSegment) {
         // 所有区间播放完毕，切换到下一个视频
+        _isSwitchingVideo = true;
         _videoPlayerController!.pause();
         config.reset();
         final nextConfig = config.nextVideo;
-        switchToVideo(nextConfig);
+
+        // 使用 Future.microtask 延迟执行，让当前监听器回调先完成
+        Future.microtask(() async {
+          await switchToVideo(nextConfig);
+          _isSwitchingVideo = false;
+        });
       } else {
         // 还有后续区间，跳转到下一个区间
         config.setPlayingSegment(nextSegment);
@@ -273,7 +283,7 @@ class VideoPlaylistController extends GetxController {
       // 不相等：切换新视频
 
       // 重置旧配置状态（如果存在）
-      currentConfig?.reset();
+      // currentConfig?.reset();
 
       await initializePlayer(config);
     } else {
