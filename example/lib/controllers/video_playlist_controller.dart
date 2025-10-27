@@ -166,7 +166,26 @@ class VideoPlaylistController extends GetxController {
       videoPlayerController: _videoPlayerController!,
       config: config,
     );
-    _startSegmentPlayback(config: config);
+
+    // 启动区间播放管理
+    _isSegmentPlaybackActive = true;
+
+    // 确定初始区间：使用传入的 config 的 currentPlayingSegment
+    final initialSegment = config.currentPlayingSegment.value;
+    if (initialSegment == null) {
+      // 如果没有指定初始区间，使用第一个区间
+      if (config.segments.isNotEmpty) {
+        config.setPlayingSegment(config.segments.first);
+      }
+    }
+
+    _videoPlayerController!.addListener(_onPositionChanged);
+
+    // 跳转到指定区间的起始位置
+    if (config.segments.isNotEmpty &&
+        config.currentPlayingSegment.value != null) {
+      _videoPlayerController!.seekTo(config.currentPlayingSegment.value!.start);
+    }
   }
 
   /// 创建 Chewie 控制器
@@ -206,28 +225,6 @@ class VideoPlaylistController extends GetxController {
         _chewieController != null &&
         _videoPlayerController != null &&
         _videoPlayerController!.value.isInitialized;
-  }
-
-  /// 启动区间播放管理
-  void _startSegmentPlayback({required VideoSegmentConfig config}) {
-    _isSegmentPlaybackActive = true;
-
-    // 确定初始区间：使用传入的 config 的 currentPlayingSegment
-    final initialSegment = config.currentPlayingSegment.value;
-    if (initialSegment == null) {
-      // 如果没有指定初始区间，使用第一个区间
-      if (config.segments.isNotEmpty) {
-        config.setPlayingSegment(config.segments.first);
-      }
-    }
-
-    _videoPlayerController!.addListener(_onPositionChanged);
-
-    // 跳转到指定区间的起始位置
-    if (config.segments.isNotEmpty &&
-        config.currentPlayingSegment.value != null) {
-      _videoPlayerController!.seekTo(config.currentPlayingSegment.value!.start);
-    }
   }
 
   /// 停止区间播放管理
