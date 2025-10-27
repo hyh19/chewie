@@ -251,17 +251,19 @@ class VideoPlaylistController extends GetxController {
       // 使用循环链表直接获取下一个区间
       final nextSegment = currentSegment.nextSegment;
 
-      if (nextSegment != currentSegment) {
-        // 跳转到下一个区间
-        config.setPlayingSegment(nextSegment);
-        _videoPlayerController!.seekTo(nextSegment.start);
-      } else {
-        // 所有区间播放完毕（已经是最后一个区间，且循环到第一个）
+      // 检查当前区间是否是最后一个区间
+      final isLastSegment = currentSegment == config.segments.last;
+
+      if (isLastSegment) {
+        // 所有区间播放完毕，切换到下一个视频
         _stopSegmentPlayback();
         _videoPlayerController!.pause();
         config.reset();
-        // 当当前视频的所有区间播放完毕时，切换到下一个视频
         toggleVideo();
+      } else {
+        // 还有后续区间，跳转到下一个区间
+        config.setPlayingSegment(nextSegment);
+        _videoPlayerController!.seekTo(nextSegment.start);
       }
     }
     // 用户拖动到区间之前
