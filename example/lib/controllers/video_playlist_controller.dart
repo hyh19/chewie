@@ -220,6 +220,25 @@ class VideoPlaylistController extends GetxController {
     }
   }
 
+  /// 跳转到指定区间
+  ///
+  /// [segment] 要跳转到的区间
+  Future<void> _jumpToSegment(PlaybackSegment segment) async {
+    final config = segment.parentConfig;
+    config.setPlayingSegment(segment);
+
+    // 设置手动跳转标志，防止位置监听器干扰
+    _isManualSeeking = true;
+
+    // 执行跳转操作
+    await _videoPlayerController!.seekTo(segment.start);
+
+    // 等待跳转完成后重置标志（500ms 延迟确保 seek 操作完成并稳定）
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _isManualSeeking = false;
+    });
+  }
+
   /// 切换到指定视频（初始化和切换的统一入口）
   ///
   /// [newConfig] 要切换到的视频配置
@@ -267,27 +286,16 @@ class VideoPlaylistController extends GetxController {
   /// 处理区间点击
   void onSegmentTapped(PlaybackSegment segment) async {
     final config = segment.parentConfig;
-    config.setPlayingSegment(segment);
-
     final currentConfig = currentPlayingConfig.value;
 
     // 直接比较配置是否相等（包括 null 情况）
     if (currentConfig != config) {
       // 不相等：切换新视频
+      config.setPlayingSegment(segment);
       await switchToVideo(config);
     } else {
       // 相等：同一视频，直接跳转到指定区间
-
-      // 设置手动跳转标志，防止位置监听器干扰
-      _isManualSeeking = true;
-
-      // 执行跳转操作
-      await _videoPlayerController!.seekTo(segment.start);
-
-      // 等待跳转完成后重置标志（500ms 延迟确保 seek 操作完成并稳定）
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _isManualSeeking = false;
-      });
+      await _jumpToSegment(segment);
     }
   }
 
