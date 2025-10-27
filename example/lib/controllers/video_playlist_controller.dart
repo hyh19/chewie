@@ -29,6 +29,9 @@ class VideoPlaylistController extends GetxController {
   // 区间播放状态
   bool _isSegmentPlaybackActive = false;
 
+  // 手动跳转标志（用于防止位置监听器干扰手动跳转）
+  bool _isManualSeeking = false;
+
   // Getter: 获取 chewieController
   ChewieController? get chewieController => _chewieController;
 
@@ -44,7 +47,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第一个视频配置
     final config1 = VideoSegmentConfig(
-      url: "http://192.168.50.182:3923/Downloads/VolkswagenGTIReview.mp4",
+      url: "http://192.168.31.174:3923/Downloads/VolkswagenGTIReview.mp4",
     );
     config1.addSegment(
       PlaybackSegment(
@@ -68,7 +71,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第二个视频配置
     final config2 = VideoSegmentConfig(
-      url: "http://192.168.50.182:3923/Downloads/TearsOfSteel.mp4",
+      url: "http://192.168.31.174:3923/Downloads/TearsOfSteel.mp4",
     );
     config2.addSegment(
       PlaybackSegment(
@@ -92,7 +95,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第三个视频配置
     final config3 = VideoSegmentConfig(
-      url: "http://192.168.50.182:3923/Downloads/Sintel.mp4",
+      url: "http://192.168.31.174:3923/Downloads/Sintel.mp4",
     );
     config3.addSegment(
       PlaybackSegment(
@@ -230,11 +233,15 @@ class VideoPlaylistController extends GetxController {
   /// 停止区间播放管理
   void _stopSegmentPlayback() {
     _isSegmentPlaybackActive = false;
+    _isManualSeeking = false; // 重置手动跳转标志
     _videoPlayerController?.removeListener(_onPositionChanged);
   }
 
   /// 监听播放位置变化
   void _onPositionChanged() {
+    // 如果正在手动跳转，则不进行自动纠正
+    if (_isManualSeeking) return;
+
     final config = currentPlayingConfig.value;
     if (!_isSegmentPlaybackActive ||
         config == null ||
@@ -273,9 +280,20 @@ class VideoPlaylistController extends GetxController {
   }
 
   /// 跳转到指定区间
-  void _jumpToSegment(VideoSegmentConfig config) {
+  void _jumpToSegment(VideoSegmentConfig config) async {
     final targetSegment = config.currentPlayingSegment.value;
-    _videoPlayerController!.seekTo(targetSegment!.start);
+    if (targetSegment == null) return;
+
+    // 设置手动跳转标志，防止位置监听器干扰
+    _isManualSeeking = true;
+
+    // 执行跳转操作
+    await _videoPlayerController!.seekTo(targetSegment.start);
+
+    // 等待跳转完成后重置标志（500ms 延迟确保 seek 操作完成并稳定）
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _isManualSeeking = false;
+    });
   }
 
   /// 切换视频
