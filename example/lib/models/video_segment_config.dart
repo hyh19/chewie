@@ -42,6 +42,17 @@ class VideoSegmentConfig {
     currentPlayingSegment.value = newSegment;
   }
 
+  /// 根据播放时间查找对应的播放区间
+  /// 返回第一个包含该时间点的区间,如果不属于任何区间则返回 null
+  PlaybackSegment? findSegmentAtPosition(Duration position) {
+    for (final segment in segments) {
+      if (segment.contains(position)) {
+        return segment;
+      }
+    }
+    return null;
+  }
+
   /// 判断是否正在播放
   bool get isPlaying {
     return currentPlayingSegment.value != null &&
