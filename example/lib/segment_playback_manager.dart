@@ -47,19 +47,17 @@ class VideoSegmentConfig {
 
   /// 切换到新的播放区间
   /// 自动处理旧区间和新区间的播放状态
-  void setPlayingSegment(PlaybackSegment? newSegment) {
+  void setPlayingSegment(PlaybackSegment newSegment) {
     // 将旧区间的播放状态设为 false
     if (currentPlayingSegment.value != null) {
       currentPlayingSegment.value!.isPlaying.value = false;
     }
 
+    // 将新区间的播放状态设为 true
+    newSegment.isPlaying.value = true;
+
     // 设置新区间
     currentPlayingSegment.value = newSegment;
-
-    // 将新区间的播放状态设为 true
-    if (newSegment != null) {
-      newSegment.isPlaying.value = true;
-    }
   }
 
   /// 判断是否正在播放
@@ -142,7 +140,7 @@ class SegmentPlaybackManager {
         // 所有区间播放完毕
         stop();
         videoController.pause();
-        config.setPlayingSegment(null);
+        config.reset();
         onSegmentChanged?.call(config);
         onAllSegmentsComplete?.call();
       }
