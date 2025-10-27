@@ -44,7 +44,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第一个视频
     final video1 = PlaylistVideo(
-      url: "http://192.168.31.174:3923/Downloads/VolkswagenGTIReview.mp4",
+      url: "http://8.217.255.65:6065/MIDA-362.mp4",
     );
     video1.addSegment(
       PlaybackSegment(
@@ -68,7 +68,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第二个视频
     final video2 = PlaylistVideo(
-      url: "http://192.168.31.174:3923/Downloads/TearsOfSteel.mp4",
+      url: "http://8.217.255.65:6065/JUR-572.mp4",
     );
     video2.addSegment(
       PlaybackSegment(
@@ -92,7 +92,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第三个视频
     final video3 = PlaylistVideo(
-      url: "http://192.168.31.174:3923/Downloads/Sintel.mp4",
+      url: "http://8.217.255.65:6065/SONE-940.mp4",
     );
     video3.addSegment(
       PlaybackSegment(
