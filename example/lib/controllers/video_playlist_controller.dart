@@ -203,7 +203,7 @@ class VideoPlaylistController extends GetxController {
 
         // 使用 Future.microtask 延迟执行，让当前监听器回调先完成
         Future.microtask(() async {
-          await switchToVideo(nextVideo);
+          await _switchToVideo(nextVideo);
           _isSwitchingVideo = false;
         });
       } else {
@@ -240,7 +240,7 @@ class VideoPlaylistController extends GetxController {
   /// 切换到指定视频（初始化和切换的统一入口）
   ///
   /// [newVideo] 要切换到的视频
-  Future<void> switchToVideo(PlaylistVideo newVideo) async {
+  Future<void> _switchToVideo(PlaylistVideo newVideo) async {
     // 重置当前视频状态(如果存在)
     currentPlayingVideo.value?.reset();
     // 赋值新视频
@@ -290,7 +290,7 @@ class VideoPlaylistController extends GetxController {
     if (currentVideo != video) {
       // 不相等：切换新视频
       video.setPlayingSegment(segment);
-      await switchToVideo(video);
+      await _switchToVideo(video);
     } else {
       // 相等：同一视频，直接跳转到指定区间
       await _jumpToSegment(segment);
