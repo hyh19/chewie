@@ -1,5 +1,5 @@
 import 'package:chewie_example/controllers/video_playlist_controller.dart';
-import 'package:chewie_example/segment_playback_manager.dart';
+import 'package:chewie_example/models/playback_segment.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

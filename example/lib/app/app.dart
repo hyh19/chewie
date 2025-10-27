@@ -1,7 +1,7 @@
 import 'package:chewie/chewie.dart';
 import 'package:chewie_example/app/theme.dart';
 import 'package:chewie_example/controllers/video_playlist_controller.dart';
-import 'package:chewie_example/video_playlist_widget.dart';
+import 'package:chewie_example/widgets/video_playlist_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

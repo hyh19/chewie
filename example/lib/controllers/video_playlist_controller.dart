@@ -1,5 +1,6 @@
 import 'package:chewie/chewie.dart';
-import 'package:chewie_example/segment_playback_manager.dart';
+import 'package:chewie_example/models/playback_segment.dart';
+import 'package:chewie_example/models/video_segment_config.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
@@ -25,8 +26,8 @@ class VideoPlaylistController extends GetxController {
   // Chewie 控制器
   ChewieController? _chewieController;
 
-  // 区间播放管理器
-  SegmentPlaybackManager? _segmentManager;
+  // 区间播放状态
+  bool _isSegmentPlaybackActive = false;
 
   // Getter: 获取 chewieController
   ChewieController? get chewieController => _chewieController;
@@ -129,10 +130,7 @@ class VideoPlaylistController extends GetxController {
       videoPlayerController: _videoPlayerController!,
       config: config,
     );
-    _setupSegmentManager(
-      videoPlayerController: _videoPlayerController!,
-      config: config,
-    );
+    _startSegmentPlayback(config: config);
   }
 
   /// 创建 Chewie 控制器
@@ -174,29 +172,76 @@ class VideoPlaylistController extends GetxController {
         _videoPlayerController!.value.isInitialized;
   }
 
-  /// 设置区间播放管理器
-  void _setupSegmentManager({
-    required VideoPlayerController videoPlayerController,
-    required VideoSegmentConfig config,
-  }) {
-    // 停止旧的管理器
-    _segmentManager?.stop();
+  /// 启动区间播放管理
+  void _startSegmentPlayback({required VideoSegmentConfig config}) {
+    _isSegmentPlaybackActive = true;
 
-    // 创建新的管理器
-    _segmentManager = SegmentPlaybackManager(
-      videoController: videoPlayerController,
-      config: config,
-      onAllSegmentsComplete: () {
+    // 确定初始区间：使用传入的 config 的 currentPlayingSegment
+    final initialSegment = config.currentPlayingSegment.value;
+    if (initialSegment == null) {
+      // 如果没有指定初始区间，使用第一个区间
+      if (config.segments.isNotEmpty) {
+        config.setPlayingSegment(config.segments.first);
+      }
+    }
+
+    _videoPlayerController!.addListener(_onPositionChanged);
+
+    // 跳转到指定区间的起始位置
+    if (config.segments.isNotEmpty &&
+        config.currentPlayingSegment.value != null) {
+      _videoPlayerController!.seekTo(config.currentPlayingSegment.value!.start);
+    }
+  }
+
+  /// 停止区间播放管理
+  void _stopSegmentPlayback() {
+    _isSegmentPlaybackActive = false;
+    _videoPlayerController?.removeListener(_onPositionChanged);
+  }
+
+  /// 监听播放位置变化
+  void _onPositionChanged() {
+    final config = currentPlayingConfig.value;
+    if (!_isSegmentPlaybackActive ||
+        config == null ||
+        config.segments.isEmpty) {
+      return;
+    }
+
+    final position = _videoPlayerController!.value.position;
+    final currentSegment = config.currentPlayingSegment.value;
+    if (currentSegment == null) return;
+
+    // 超出当前区间结束时间
+    if (position > currentSegment.end) {
+      final currentIndex = config.segments.indexOf(currentSegment);
+      if (currentIndex < 0) return;
+
+      if (currentIndex < config.segments.length - 1) {
+        // 跳转到下一个区间
+        final nextSegment = config.segments[currentIndex + 1];
+        config.setPlayingSegment(nextSegment);
+        _videoPlayerController!.seekTo(nextSegment.start);
+      } else {
+        // 所有区间播放完毕
+        _stopSegmentPlayback();
+        _videoPlayerController!.pause();
+        config.reset();
         // 当当前视频的所有区间播放完毕时，切换到下一个视频
         toggleVideo();
-      },
-      onSegmentChanged: (updatedConfig) {
-        // Rx 变量会自动触发更新，无需手动 setState
-      },
-    );
+      }
+    }
+    // 用户拖动到区间之前
+    else if (position < currentSegment.start) {
+      _videoPlayerController!.seekTo(currentSegment.start);
+    }
+  }
 
-    // 启动管理器
-    _segmentManager!.start(config: config);
+  /// 跳转到指定区间
+  void _jumpToSegment(VideoSegmentConfig config) {
+    final targetSegment = config.currentPlayingSegment.value;
+    _videoPlayerController!.seekTo(targetSegment!.start);
   }
 
   /// 切换视频
@@ -205,6 +250,7 @@ class VideoPlaylistController extends GetxController {
     if (currentPlayingConfig.value == null) return;
 
     await _videoPlayerController!.pause();
+    _stopSegmentPlayback();
 
     // 找到当前播放的配置
     final currentIndex = videoConfigs.indexWhere((config) => config.isPlaying);
@@ -242,15 +288,15 @@ class VideoPlaylistController extends GetxController {
       await initializePlayer(config);
     } else {
       // 相等：同一视频，直接跳转到指定区间
-      _segmentManager?.jumpToSegment(config);
+      _jumpToSegment(config);
     }
   }
 
   @override
   void onClose() {
+    _stopSegmentPlayback();
     _videoPlayerController?.removeListener(_updateInitializedState);
     isInitialized.value = false;
-    _segmentManager?.dispose();
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     super.onClose();

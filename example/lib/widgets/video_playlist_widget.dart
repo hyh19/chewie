@@ -1,4 +1,4 @@
-import 'package:chewie_example/segment_playback_manager.dart';
+import 'package:chewie_example/models/video_segment_config.dart';
 import 'package:chewie_example/widgets/video_playlist_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
