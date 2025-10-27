@@ -241,7 +241,8 @@ class VideoPlaylistController extends GetxController {
     final currentConfig = currentPlayingConfig.value;
 
     if (currentConfig == null) {
-      // 如果没有正在播放的视频，直接初始化播放选中的视频
+      // 如果没有正在播放的视频，先设置配置，再初始化播放器
+      currentPlayingConfig.value = config;
       await initializePlayer(config);
       return;
     }
