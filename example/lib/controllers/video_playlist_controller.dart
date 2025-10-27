@@ -229,14 +229,10 @@ class VideoPlaylistController extends GetxController {
   }
 
   /// 处理区间点击
-  void onSegmentTapped(PlaybackSegment segment) {
-    final parentConfig = segment.parentConfig;
-    parentConfig.setPlayingSegment(segment);
-    onSegmentSelected(parentConfig);
-  }
+  void onSegmentTapped(PlaybackSegment segment) async {
+    final config = segment.parentConfig;
+    config.setPlayingSegment(segment);
 
-  /// 处理区间选择
-  void onSegmentSelected(VideoSegmentConfig config) async {
     final currentConfig = currentPlayingConfig.value;
 
     // 直接比较配置是否相等（包括 null 情况）
