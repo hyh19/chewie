@@ -7,14 +7,9 @@ import 'package:get/get.dart';
 ///
 /// 用于显示单个视频及其所有播放区间
 class VideoPlaylistItemWidget extends StatelessWidget {
-  const VideoPlaylistItemWidget({
-    super.key,
-    required this.config,
-    required this.onSegmentSelected,
-  });
+  const VideoPlaylistItemWidget({super.key, required this.config});
 
   final VideoSegmentConfig config;
-  final void Function(VideoSegmentConfig config) onSegmentSelected;
 
   /// 从 URL 中提取文件名
   String _extractFileName(String url) {
@@ -60,13 +55,7 @@ class VideoPlaylistItemWidget extends StatelessWidget {
             style: const TextStyle(fontSize: 12),
           ),
           children: config.segments.map((segment) {
-            return SegmentItemWidget(
-              segment: segment,
-              onTap: () {
-                config.setPlayingSegment(segment);
-                onSegmentSelected(config);
-              },
-            );
+            return SegmentItemWidget(segment: segment);
           }).toList(),
         ),
       );

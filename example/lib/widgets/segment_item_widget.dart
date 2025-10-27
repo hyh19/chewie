@@ -1,3 +1,4 @@
+import 'package:chewie_example/controllers/video_playlist_controller.dart';
 import 'package:chewie_example/segment_playback_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,14 +7,9 @@ import 'package:get/get.dart';
 ///
 /// 用于显示单个播放区间的信息
 class SegmentItemWidget extends StatelessWidget {
-  const SegmentItemWidget({
-    super.key,
-    required this.segment,
-    required this.onTap,
-  });
+  const SegmentItemWidget({super.key, required this.segment});
 
   final PlaybackSegment segment;
-  final VoidCallback onTap;
 
   /// 格式化时间显示
   String _formatDuration(Duration duration) {
@@ -52,7 +48,9 @@ class SegmentItemWidget extends StatelessWidget {
         trailing: isPlaying
             ? Icon(Icons.play_arrow, color: Theme.of(context).primaryColor)
             : null,
-        onTap: onTap,
+        onTap: () {
+          Get.find<VideoPlaylistController>().onSegmentTapped(segment);
+        },
       );
     });
   }

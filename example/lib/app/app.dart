@@ -81,7 +81,6 @@ class ChewieDemo extends StatelessWidget {
                   Expanded(
                     child: VideoPlaylistWidget(
                       videoConfigs: controller.videoConfigs,
-                      onSegmentSelected: controller.onSegmentSelected,
                     ),
                   ),
                 ],

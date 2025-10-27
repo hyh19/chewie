@@ -7,14 +7,9 @@ import 'package:get/get.dart';
 ///
 /// 显示所有视频 URL 及其播放区间，支持折叠/展开，高亮当前播放项
 class VideoPlaylistWidget extends StatelessWidget {
-  const VideoPlaylistWidget({
-    super.key,
-    required this.videoConfigs,
-    required this.onSegmentSelected,
-  });
+  const VideoPlaylistWidget({super.key, required this.videoConfigs});
 
   final RxList<VideoSegmentConfig> videoConfigs;
-  final void Function(VideoSegmentConfig config) onSegmentSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +19,7 @@ class VideoPlaylistWidget extends StatelessWidget {
         itemBuilder: (context, index) {
           final config = videoConfigs[index];
 
-          return VideoPlaylistItemWidget(
-            config: config,
-            onSegmentSelected: onSegmentSelected,
-          );
+          return VideoPlaylistItemWidget(config: config);
         },
       ),
     );

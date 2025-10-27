@@ -42,59 +42,81 @@ class VideoPlaylistController extends GetxController {
 
   /// 初始化视频配置列表
   void _initializeVideoConfigs() {
-    videoConfigs.value = [
-      VideoSegmentConfig(
-        url: "http://192.168.31.174:3923/Downloads/VolkswagenGTIReview.mp4",
-        segments: [
-          PlaybackSegment(
-            start: const Duration(seconds: 15),
-            end: const Duration(seconds: 30),
-          ),
-          PlaybackSegment(
-            start: const Duration(seconds: 45),
-            end: const Duration(minutes: 1, seconds: 0),
-          ),
-          PlaybackSegment(
-            start: const Duration(minutes: 1, seconds: 15),
-            end: const Duration(minutes: 1, seconds: 30),
-          ),
-        ],
+    final configs = <VideoSegmentConfig>[];
+
+    // 创建第一个视频配置
+    final config1 = VideoSegmentConfig(
+      url: "http://192.168.31.174:3923/Downloads/VolkswagenGTIReview.mp4",
+    );
+    config1.addSegment(
+      PlaybackSegment(
+        start: const Duration(seconds: 15),
+        end: const Duration(seconds: 30),
       ),
-      VideoSegmentConfig(
-        url: "http://192.168.31.174:3923/Downloads/TearsOfSteel.mp4",
-        segments: [
-          PlaybackSegment(
-            start: const Duration(seconds: 30),
-            end: const Duration(seconds: 45),
-          ),
-          PlaybackSegment(
-            start: const Duration(minutes: 1, seconds: 0),
-            end: const Duration(minutes: 1, seconds: 15),
-          ),
-          PlaybackSegment(
-            start: const Duration(minutes: 1, seconds: 30),
-            end: const Duration(minutes: 1, seconds: 45),
-          ),
-        ],
+    );
+    config1.addSegment(
+      PlaybackSegment(
+        start: const Duration(seconds: 45),
+        end: const Duration(minutes: 1, seconds: 0),
       ),
-      VideoSegmentConfig(
-        url: "http://192.168.31.174:3923/Downloads/Sintel.mp4",
-        segments: [
-          PlaybackSegment(
-            start: const Duration(seconds: 20),
-            end: const Duration(seconds: 35),
-          ),
-          PlaybackSegment(
-            start: const Duration(seconds: 50),
-            end: const Duration(minutes: 1, seconds: 5),
-          ),
-          PlaybackSegment(
-            start: const Duration(minutes: 1, seconds: 30),
-            end: const Duration(minutes: 1, seconds: 45),
-          ),
-        ],
+    );
+    config1.addSegment(
+      PlaybackSegment(
+        start: const Duration(minutes: 1, seconds: 15),
+        end: const Duration(minutes: 1, seconds: 30),
       ),
-    ];
+    );
+    configs.add(config1);
+
+    // 创建第二个视频配置
+    final config2 = VideoSegmentConfig(
+      url: "http://192.168.31.174:3923/Downloads/TearsOfSteel.mp4",
+    );
+    config2.addSegment(
+      PlaybackSegment(
+        start: const Duration(seconds: 30),
+        end: const Duration(seconds: 45),
+      ),
+    );
+    config2.addSegment(
+      PlaybackSegment(
+        start: const Duration(minutes: 1, seconds: 0),
+        end: const Duration(minutes: 1, seconds: 15),
+      ),
+    );
+    config2.addSegment(
+      PlaybackSegment(
+        start: const Duration(minutes: 1, seconds: 30),
+        end: const Duration(minutes: 1, seconds: 45),
+      ),
+    );
+    configs.add(config2);
+
+    // 创建第三个视频配置
+    final config3 = VideoSegmentConfig(
+      url: "http://192.168.31.174:3923/Downloads/Sintel.mp4",
+    );
+    config3.addSegment(
+      PlaybackSegment(
+        start: const Duration(seconds: 20),
+        end: const Duration(seconds: 35),
+      ),
+    );
+    config3.addSegment(
+      PlaybackSegment(
+        start: const Duration(seconds: 50),
+        end: const Duration(minutes: 1, seconds: 5),
+      ),
+    );
+    config3.addSegment(
+      PlaybackSegment(
+        start: const Duration(minutes: 1, seconds: 30),
+        end: const Duration(minutes: 1, seconds: 45),
+      ),
+    );
+    configs.add(config3);
+
+    videoConfigs.value = configs;
   }
 
   /// 初始化播放器
@@ -204,6 +226,13 @@ class VideoPlaylistController extends GetxController {
     // 设置新的播放区间
     nextConfig.setPlayingSegment(firstSegment);
     await initializePlayer(videoConfigs[nextIndex]);
+  }
+
+  /// 处理区间点击
+  void onSegmentTapped(PlaybackSegment segment) {
+    final parentConfig = segment.parentConfig;
+    parentConfig.setPlayingSegment(segment);
+    onSegmentSelected(parentConfig);
   }
 
   /// 处理区间选择

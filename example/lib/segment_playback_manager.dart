@@ -11,6 +11,7 @@ class PlaybackSegment {
 
   final Duration start;
   final Duration end;
+  late final parentConfig;
   final RxBool isPlaying;
 
   bool contains(Duration position) {
@@ -22,13 +23,19 @@ class PlaybackSegment {
 class VideoSegmentConfig {
   VideoSegmentConfig({
     required this.url,
-    required this.segments,
     PlaybackSegment? currentPlayingSegment,
-  }) : currentPlayingSegment = Rx<PlaybackSegment?>(currentPlayingSegment);
+  }) : segments = <PlaybackSegment>[],
+       currentPlayingSegment = Rx<PlaybackSegment?>(currentPlayingSegment);
 
   final String url;
   final List<PlaybackSegment> segments;
   final Rx<PlaybackSegment?> currentPlayingSegment;
+
+  /// 添加一个 segment
+  void addSegment(PlaybackSegment segment) {
+    segment.parentConfig = this;
+    segments.add(segment);
+  }
 
   /// 重置配置到初始状态
   void reset() {
