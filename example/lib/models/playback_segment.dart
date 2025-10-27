@@ -9,12 +9,18 @@ class PlaybackSegment {
     bool isPlaying = false,
   }) : isPlaying = RxBool(isPlaying);
 
+  // 区间起始时间
   final Duration start;
+  // 区间结束时间
   final Duration end;
+  // 所属的视频对象，建立双向引用以便访问父对象
   late final PlaylistVideo parentVideo;
+  // 响应式播放状态，用于 UI 显示当前播放的区间
   final RxBool isPlaying;
+  // 下一个播放区间，形成循环链表结构
   late final PlaybackSegment nextSegment;
 
+  // 判断指定时间是否在当前区间内（闭区间包含边界）
   bool contains(Duration position) {
     return position >= start && position <= end;
   }
