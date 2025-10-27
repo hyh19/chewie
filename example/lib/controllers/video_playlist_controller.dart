@@ -152,9 +152,6 @@ class VideoPlaylistController extends GetxController {
 
   /// 初始化播放器
   Future<void> initializePlayer(VideoSegmentConfig config) async {
-    final currentSegment = config.currentPlayingSegment.value;
-    if (currentSegment == null) return;
-
     // 在初始化新播放器前，先清理旧的播放器资源
     await _disposeOldPlayer();
 
@@ -174,22 +171,23 @@ class VideoPlaylistController extends GetxController {
     // 启动区间播放管理
     _isSegmentPlaybackActive = true;
 
-    // 确定初始区间：使用传入的 config 的 currentPlayingSegment
-    final initialSegment = config.currentPlayingSegment.value;
-    if (initialSegment == null) {
-      // 如果没有指定初始区间，使用第一个区间
-      if (config.segments.isNotEmpty) {
+    // 根据是否有区间来确定播放起点
+    if (config.segments.isEmpty) {
+      // 没有区间，从 0 秒开始播放
+      await _videoPlayerController!.seekTo(Duration.zero);
+    } else {
+      // 有区间，确定初始区间
+      if (config.currentPlayingSegment.value == null) {
+        // 未指定初始区间，使用第一个区间
         config.setPlayingSegment(config.segments.first);
       }
+      // 跳转到区间起始位置
+      await _videoPlayerController!.seekTo(
+        config.currentPlayingSegment.value!.start,
+      );
     }
 
     _videoPlayerController!.addListener(_onPositionChanged);
-
-    // 跳转到指定区间的起始位置
-    if (config.segments.isNotEmpty &&
-        config.currentPlayingSegment.value != null) {
-      _videoPlayerController!.seekTo(config.currentPlayingSegment.value!.start);
-    }
   }
 
   /// 创建 Chewie 控制器
