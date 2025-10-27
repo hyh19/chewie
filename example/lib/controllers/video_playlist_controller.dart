@@ -114,6 +114,16 @@ class VideoPlaylistController extends GetxController {
     );
     configs.add(config3);
 
+    // 建立 video config 之间的循环链表
+    for (int i = 0; i < configs.length; i++) {
+      configs[i].nextVideo = configs[(i + 1) % configs.length];
+    }
+
+    // 为每个 config 建立 segment 循环链表
+    for (final config in configs) {
+      config.linkSegments();
+    }
+
     videoConfigs.value = configs;
   }
 
@@ -225,40 +235,39 @@ class VideoPlaylistController extends GetxController {
 
   /// 监听播放位置变化
   void _onPositionChanged() {
-    // final config = currentPlayingConfig.value;
-    // if (!_isSegmentPlaybackActive ||
-    //     config == null ||
-    //     config.segments.isEmpty) {
-    //   return;
-    // }
-    //
-    // final position = _videoPlayerController!.value.position;
-    // final currentSegment = config.currentPlayingSegment.value;
-    // if (currentSegment == null) return;
-    //
-    // // 超出当前区间结束时间
-    // if (position > currentSegment.end) {
-    //   final currentIndex = config.segments.indexOf(currentSegment);
-    //   if (currentIndex < 0) return;
-    //
-    //   if (currentIndex < config.segments.length - 1) {
-    //     // 跳转到下一个区间
-    //     final nextSegment = config.segments[currentIndex + 1];
-    //     config.setPlayingSegment(nextSegment);
-    //     _videoPlayerController!.seekTo(nextSegment.start);
-    //   } else {
-    //     // 所有区间播放完毕
-    //     _stopSegmentPlayback();
-    //     _videoPlayerController!.pause();
-    //     config.reset();
-    //     // 当当前视频的所有区间播放完毕时，切换到下一个视频
-    //     toggleVideo();
-    //   }
-    // }
-    // // 用户拖动到区间之前
-    // else if (position < currentSegment.start) {
-    //   _videoPlayerController!.seekTo(currentSegment.start);
-    // }
+    final config = currentPlayingConfig.value;
+    if (!_isSegmentPlaybackActive ||
+        config == null ||
+        config.segments.isEmpty) {
+      return;
+    }
+
+    final position = _videoPlayerController!.value.position;
+    final currentSegment = config.currentPlayingSegment.value;
+    if (currentSegment == null) return;
+
+    // 超出当前区间结束时间
+    if (position > currentSegment.end) {
+      // 使用循环链表直接获取下一个区间
+      final nextSegment = currentSegment.nextSegment;
+
+      if (nextSegment != currentSegment) {
+        // 跳转到下一个区间
+        config.setPlayingSegment(nextSegment);
+        _videoPlayerController!.seekTo(nextSegment.start);
+      } else {
+        // 所有区间播放完毕（已经是最后一个区间，且循环到第一个）
+        _stopSegmentPlayback();
+        _videoPlayerController!.pause();
+        config.reset();
+        // 当当前视频的所有区间播放完毕时，切换到下一个视频
+        toggleVideo();
+      }
+    }
+    // 用户拖动到区间之前
+    else if (position < currentSegment.start) {
+      _videoPlayerController!.seekTo(currentSegment.start);
+    }
   }
 
   /// 跳转到指定区间
@@ -271,17 +280,14 @@ class VideoPlaylistController extends GetxController {
   Future<void> toggleVideo() async {
     if (currentPlayingConfig.value == null) return;
 
-    // 找到当前播放的配置
-    final currentIndex = videoConfigs.indexWhere((config) => config.isPlaying);
+    // 获取当前配置
+    final currentConfig = currentPlayingConfig.value!;
 
     // 重置当前视频状态
-    if (currentIndex >= 0 && currentIndex < videoConfigs.length) {
-      videoConfigs[currentIndex].reset();
-    }
+    currentConfig.reset();
 
-    // 切换到下一个视频
-    final nextIndex = (currentIndex + 1) % videoConfigs.length;
-    final nextConfig = videoConfigs[nextIndex];
+    // 使用循环链表直接获取下一个视频
+    final nextConfig = currentConfig.nextVideo;
     final firstSegment = nextConfig.segments.first;
 
     // 设置新的播放区间

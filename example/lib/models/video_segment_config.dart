@@ -12,6 +12,7 @@ class VideoSegmentConfig {
   final String url;
   final List<PlaybackSegment> segments;
   final Rx<PlaybackSegment?> currentPlayingSegment;
+  late final VideoSegmentConfig nextVideo;
 
   /// 添加一个 segment
   void addSegment(PlaybackSegment segment) {
@@ -24,6 +25,16 @@ class VideoSegmentConfig {
     currentPlayingSegment.value = null;
     for (final segment in segments) {
       segment.isPlaying.value = false;
+    }
+  }
+
+  /// 在所有 segment 添加完成后，建立循环链表
+  /// 最后一个 segment 指向第一个 segment，形成循环
+  void linkSegments() {
+    if (segments.isEmpty) return;
+
+    for (int i = 0; i < segments.length; i++) {
+      segments[i].nextSegment = segments[(i + 1) % segments.length];
     }
   }
 
