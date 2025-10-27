@@ -156,7 +156,7 @@ class VideoPlaylistController extends GetxController {
         ];
       },
 
-      hideControlsTimer: const Duration(seconds: 1),
+      hideControlsTimer: const Duration(seconds: 600),
     );
 
     // 监听视频播放器初始化状态
