@@ -1,5 +1,6 @@
 import 'package:chewie_example/segment_playback_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// 播放区间条目组件
 ///
@@ -27,28 +28,32 @@ class SegmentItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      leading: Container(
-        width: 4,
-        height: double.infinity,
-        color: segment.isPlaying
-            ? Theme.of(context).primaryColor
-            : Colors.grey.shade300,
-      ),
-      title: Text(
-        '${_formatDuration(segment.start)} - ${_formatDuration(segment.end)}',
-        style: TextStyle(
-          fontWeight: segment.isPlaying ? FontWeight.bold : FontWeight.normal,
-          color: segment.isPlaying ? Theme.of(context).primaryColor : null,
-          fontFamily: 'monospace',
-          fontSize: 13,
+    return Obx(() {
+      final isPlaying = segment.isPlaying.value;
+
+      return ListTile(
+        dense: true,
+        leading: Container(
+          width: 4,
+          height: double.infinity,
+          color: isPlaying
+              ? Theme.of(context).primaryColor
+              : Colors.grey.shade300,
         ),
-      ),
-      trailing: segment.isPlaying
-          ? Icon(Icons.play_arrow, color: Theme.of(context).primaryColor)
-          : null,
-      onTap: onTap,
-    );
+        title: Text(
+          '${_formatDuration(segment.start)} - ${_formatDuration(segment.end)}',
+          style: TextStyle(
+            fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+            color: isPlaying ? Theme.of(context).primaryColor : null,
+            fontFamily: 'monospace',
+            fontSize: 13,
+          ),
+        ),
+        trailing: isPlaying
+            ? Icon(Icons.play_arrow, color: Theme.of(context).primaryColor)
+            : null,
+        onTap: onTap,
+      );
+    });
   }
 }

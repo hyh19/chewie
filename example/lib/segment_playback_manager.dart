@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
 /// 表示一个视频播放的时间区间
@@ -5,12 +6,12 @@ class PlaybackSegment {
   PlaybackSegment({
     required this.start,
     required this.end,
-    this.isPlaying = false,
-  });
+    bool isPlaying = false,
+  }) : isPlaying = RxBool(isPlaying);
 
   final Duration start;
   final Duration end;
-  bool isPlaying;
+  final RxBool isPlaying;
 
   bool contains(Duration position) {
     return position >= start && position <= end;
@@ -22,18 +23,18 @@ class VideoSegmentConfig {
   VideoSegmentConfig({
     required this.url,
     required this.segments,
-    this.currentPlayingSegment,
-  });
+    PlaybackSegment? currentPlayingSegment,
+  }) : currentPlayingSegment = Rx<PlaybackSegment?>(currentPlayingSegment);
 
   final String url;
   final List<PlaybackSegment> segments;
-  PlaybackSegment? currentPlayingSegment;
+  final Rx<PlaybackSegment?> currentPlayingSegment;
 
   /// 重置配置到初始状态
   void reset() {
-    currentPlayingSegment = null;
+    currentPlayingSegment.value = null;
     for (final segment in segments) {
-      segment.isPlaying = false;
+      segment.isPlaying.value = false;
     }
   }
 
@@ -41,22 +42,23 @@ class VideoSegmentConfig {
   /// 自动处理旧区间和新区间的播放状态
   void setPlayingSegment(PlaybackSegment? newSegment) {
     // 将旧区间的播放状态设为 false
-    if (currentPlayingSegment != null) {
-      currentPlayingSegment!.isPlaying = false;
+    if (currentPlayingSegment.value != null) {
+      currentPlayingSegment.value!.isPlaying.value = false;
     }
 
     // 设置新区间
-    currentPlayingSegment = newSegment;
+    currentPlayingSegment.value = newSegment;
 
     // 将新区间的播放状态设为 true
     if (newSegment != null) {
-      newSegment.isPlaying = true;
+      newSegment.isPlaying.value = true;
     }
   }
 
   /// 判断是否正在播放
   bool get isPlaying {
-    return currentPlayingSegment != null && currentPlayingSegment!.isPlaying;
+    return currentPlayingSegment.value != null &&
+        currentPlayingSegment.value!.isPlaying.value;
   }
 }
 
@@ -87,7 +89,7 @@ class SegmentPlaybackManager {
     _isActive = true;
 
     // 确定初始区间：使用传入的 config 的 currentPlayingSegment
-    final initialSegment = config.currentPlayingSegment;
+    final initialSegment = config.currentPlayingSegment.value;
     if (initialSegment == null) {
       // 如果没有指定初始区间，使用第一个区间
       if (config.segments.isNotEmpty) {
@@ -99,8 +101,9 @@ class SegmentPlaybackManager {
     videoController.addListener(_onPositionChanged);
 
     // 跳转到指定区间的起始位置
-    if (config.segments.isNotEmpty && config.currentPlayingSegment != null) {
-      videoController.seekTo(config.currentPlayingSegment!.start);
+    if (config.segments.isNotEmpty &&
+        config.currentPlayingSegment.value != null) {
+      videoController.seekTo(config.currentPlayingSegment.value!.start);
     }
   }
 
@@ -114,7 +117,7 @@ class SegmentPlaybackManager {
     if (!_isActive || config.segments.isEmpty) return;
 
     final position = videoController.value.position;
-    final currentSegment = config.currentPlayingSegment;
+    final currentSegment = config.currentPlayingSegment.value;
     if (currentSegment == null) return;
 
     // 超出当前区间结束时间
@@ -145,7 +148,7 @@ class SegmentPlaybackManager {
 
   /// 跳转到指定区间
   void jumpToSegment(VideoSegmentConfig config) {
-    final targetSegment = config.currentPlayingSegment;
+    final targetSegment = config.currentPlayingSegment.value;
     videoController.seekTo(targetSegment!.start);
     onSegmentChanged?.call(config);
   }

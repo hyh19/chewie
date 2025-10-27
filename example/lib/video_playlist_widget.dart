@@ -1,6 +1,7 @@
 import 'package:chewie_example/segment_playback_manager.dart';
 import 'package:chewie_example/widgets/video_playlist_item_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// 视频播放列表组件
 ///
@@ -12,21 +13,23 @@ class VideoPlaylistWidget extends StatelessWidget {
     required this.onSegmentSelected,
   });
 
-  final List<VideoSegmentConfig> videoConfigs;
+  final RxList<VideoSegmentConfig> videoConfigs;
   final void Function(VideoSegmentConfig config) onSegmentSelected;
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: videoConfigs.length,
-      itemBuilder: (context, index) {
-        final config = videoConfigs[index];
+    return Obx(
+      () => ListView.builder(
+        itemCount: videoConfigs.length,
+        itemBuilder: (context, index) {
+          final config = videoConfigs[index];
 
-        return VideoPlaylistItemWidget(
-          config: config,
-          onSegmentSelected: onSegmentSelected,
-        );
-      },
+          return VideoPlaylistItemWidget(
+            config: config,
+            onSegmentSelected: onSegmentSelected,
+          );
+        },
+      ),
     );
   }
 }

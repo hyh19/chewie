@@ -1,0 +1,241 @@
+import 'package:chewie/chewie.dart';
+import 'package:chewie_example/segment_playback_manager.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:video_player/video_player.dart';
+
+/// 视频播放列表控制器
+///
+/// 管理视频播放列表的所有状态和逻辑
+class VideoPlaylistController extends GetxController {
+  // 视频配置列表
+  final RxList<VideoSegmentConfig> videoConfigs = <VideoSegmentConfig>[].obs;
+
+  // 当前播放的视频配置
+  final Rx<VideoSegmentConfig?> currentPlayingConfig = Rx<VideoSegmentConfig?>(
+    null,
+  );
+
+  // 是否已初始化（响应式变量）
+  final RxBool isInitialized = false.obs;
+
+  // 视频播放器控制器
+  VideoPlayerController? _videoPlayerController;
+
+  // Chewie 控制器
+  ChewieController? _chewieController;
+
+  // 区间播放管理器
+  SegmentPlaybackManager? _segmentManager;
+
+  // Getter: 获取 videoPlayerController
+  VideoPlayerController? get videoPlayerController => _videoPlayerController;
+
+  // Getter: 获取 chewieController
+  ChewieController? get chewieController => _chewieController;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _initializeVideoConfigs();
+  }
+
+  /// 初始化视频配置列表
+  void _initializeVideoConfigs() {
+    videoConfigs.value = [
+      VideoSegmentConfig(
+        url: "http://192.168.31.174:3923/Downloads/VolkswagenGTIReview.mp4",
+        segments: [
+          PlaybackSegment(
+            start: const Duration(seconds: 15),
+            end: const Duration(seconds: 30),
+          ),
+          PlaybackSegment(
+            start: const Duration(seconds: 45),
+            end: const Duration(minutes: 1, seconds: 0),
+          ),
+          PlaybackSegment(
+            start: const Duration(minutes: 1, seconds: 15),
+            end: const Duration(minutes: 1, seconds: 30),
+          ),
+        ],
+      ),
+      VideoSegmentConfig(
+        url: "http://192.168.31.174:3923/Downloads/TearsOfSteel.mp4",
+        segments: [
+          PlaybackSegment(
+            start: const Duration(seconds: 30),
+            end: const Duration(seconds: 45),
+          ),
+          PlaybackSegment(
+            start: const Duration(minutes: 1, seconds: 0),
+            end: const Duration(minutes: 1, seconds: 15),
+          ),
+          PlaybackSegment(
+            start: const Duration(minutes: 1, seconds: 30),
+            end: const Duration(minutes: 1, seconds: 45),
+          ),
+        ],
+      ),
+      VideoSegmentConfig(
+        url: "http://192.168.31.174:3923/Downloads/Sintel.mp4",
+        segments: [
+          PlaybackSegment(
+            start: const Duration(seconds: 20),
+            end: const Duration(seconds: 35),
+          ),
+          PlaybackSegment(
+            start: const Duration(seconds: 50),
+            end: const Duration(minutes: 1, seconds: 5),
+          ),
+          PlaybackSegment(
+            start: const Duration(minutes: 1, seconds: 30),
+            end: const Duration(minutes: 1, seconds: 45),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  /// 初始化播放器
+  Future<void> initializePlayer(VideoSegmentConfig config) async {
+    final currentSegment = config.currentPlayingSegment.value;
+    if (currentSegment == null) return;
+
+    _videoPlayerController = VideoPlayerController.networkUrl(
+      Uri.parse(config.url),
+    );
+    await _videoPlayerController!.initialize();
+    _createChewieController(
+      videoPlayerController: _videoPlayerController!,
+      config: config,
+    );
+    _setupSegmentManager(
+      videoPlayerController: _videoPlayerController!,
+      config: config,
+    );
+    currentPlayingConfig.value = config;
+  }
+
+  /// 创建 Chewie 控制器
+  void _createChewieController({
+    required VideoPlayerController videoPlayerController,
+    required VideoSegmentConfig config,
+  }) {
+    _chewieController = ChewieController(
+      videoPlayerController: videoPlayerController,
+      autoPlay: true,
+      zoomAndPan: true,
+      looping: false, // Disable looping for segment playback
+
+      startAt: config.currentPlayingSegment.value?.start,
+
+      additionalOptions: (context) {
+        return <OptionItem>[
+          OptionItem(
+            onTap: (context) => toggleVideo(),
+            iconData: Icons.live_tv_sharp,
+            title: 'Toggle Video Src',
+          ),
+        ];
+      },
+
+      hideControlsTimer: const Duration(seconds: 1),
+    );
+
+    // 监听视频播放器初始化状态
+    _videoPlayerController!.addListener(_updateInitializedState);
+    _updateInitializedState();
+  }
+
+  /// 更新初始化状态
+  void _updateInitializedState() {
+    isInitialized.value =
+        _chewieController != null &&
+        _videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized;
+  }
+
+  /// 设置区间播放管理器
+  void _setupSegmentManager({
+    required VideoPlayerController videoPlayerController,
+    required VideoSegmentConfig config,
+  }) {
+    // 停止旧的管理器
+    _segmentManager?.stop();
+
+    // 创建新的管理器
+    _segmentManager = SegmentPlaybackManager(
+      videoController: videoPlayerController,
+      config: config,
+      onAllSegmentsComplete: () {
+        // 当当前视频的所有区间播放完毕时，切换到下一个视频
+        toggleVideo();
+      },
+      onSegmentChanged: (updatedConfig) {
+        // Rx 变量会自动触发更新，无需手动 setState
+      },
+    );
+
+    // 启动管理器
+    _segmentManager!.start(config: config);
+  }
+
+  /// 切换视频
+  Future<void> toggleVideo() async {
+    if (_videoPlayerController == null) return;
+    if (currentPlayingConfig.value == null) return;
+
+    await _videoPlayerController!.pause();
+
+    // 找到当前播放的配置
+    final currentIndex = videoConfigs.indexWhere((config) => config.isPlaying);
+
+    // 重置当前视频状态
+    if (currentIndex >= 0 && currentIndex < videoConfigs.length) {
+      videoConfigs[currentIndex].reset();
+    }
+
+    // 切换到下一个视频
+    final nextIndex = (currentIndex + 1) % videoConfigs.length;
+    final nextConfig = videoConfigs[nextIndex];
+    final firstSegment = nextConfig.segments.first;
+
+    // 设置新的播放区间
+    nextConfig.setPlayingSegment(firstSegment);
+    await initializePlayer(videoConfigs[nextIndex]);
+  }
+
+  /// 处理区间选择
+  void onSegmentSelected(VideoSegmentConfig config) async {
+    // 检查是否切换到不同视频
+    final currentConfig = currentPlayingConfig.value;
+
+    if (currentConfig == null) {
+      // 如果没有正在播放的视频，直接初始化播放选中的视频
+      await initializePlayer(config);
+      return;
+    }
+
+    if (config.url != currentConfig.url) {
+      // 切换视频：重置当前视频状态，设置新视频区间
+      currentConfig.reset();
+
+      // 切换视频：更新配置并初始化播放器
+      await initializePlayer(config);
+    } else {
+      // 同一视频，直接跳转到指定区间
+      _segmentManager?.jumpToSegment(config);
+    }
+  }
+
+  @override
+  void onClose() {
+    _videoPlayerController?.removeListener(_updateInitializedState);
+    isInitialized.value = false;
+    _segmentManager?.dispose();
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+    super.onClose();
+  }
+}
