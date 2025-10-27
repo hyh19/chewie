@@ -17,16 +17,16 @@ class VideoPlaylistController extends GetxController {
   // 是否已初始化（响应式变量）
   final RxBool isInitialized = false.obs;
 
-  // 视频播放器控制器
+  // 视频播放器控制器，管理视频播放状态和位置
   VideoPlayerController? _videoPlayerController;
 
-  // Chewie 控制器
+  // Chewie 控制器，管理播放 UI 和控制
   ChewieController? _chewieController;
 
-  // 手动跳转标志（用于防止位置监听器干扰手动跳转）
+  // 手动跳转标志，防止位置监听器在用户拖动时自动纠正位置
   bool _isManualSeeking = false;
 
-  // 视频切换中标志（防止重复触发）
+  // 视频切换中标志，防止切换过程中的重复触发和冲突
   bool _isSwitchingVideo = false;
 
   // Getter: 获取 chewieController
@@ -114,12 +114,12 @@ class VideoPlaylistController extends GetxController {
     );
     videos.add(video3);
 
-    // 建立播放列表视频之间的循环链表
+    // 建立视频循环链表，最后一个视频指向第一个，实现无缝循环播放
     for (int i = 0; i < videos.length; i++) {
       videos[i].nextVideo = videos[(i + 1) % videos.length];
     }
 
-    // 为每个视频建立 segment 循环链表
+    // 为每个视频建立 segment 循环链表，所有区间播放完后自动跳到下一个区间
     for (final video in videos) {
       video.linkSegments();
     }
@@ -129,18 +129,18 @@ class VideoPlaylistController extends GetxController {
 
   /// 清理旧的播放器资源
   Future<void> _disposeOldPlayer() async {
-    _isSwitchingVideo = false; // 重置切换标志
-    _isManualSeeking = false; // 重置手动跳转标志
+    // 重置状态标志，避免新旧播放器状态干扰
+    _isSwitchingVideo = false;
+    _isManualSeeking = false;
     _videoPlayerController?.removeListener(_onPositionChanged);
 
-    // 移除监听器
+    // 移除监听器，防止内存泄漏
     _videoPlayerController?.removeListener(_updateInitializedState);
 
-    // 先释放视频播放器控制器
+    // 先释放 VideoPlayerController，再释放 ChewieController，避免依赖冲突
     await _videoPlayerController?.dispose();
     _videoPlayerController = null;
 
-    // 再释放 Chewie 控制器
     _chewieController?.dispose();
     _chewieController = null;
 
@@ -158,9 +158,10 @@ class VideoPlaylistController extends GetxController {
       autoPlay: true,
       zoomAndPan: true,
       looping: false,
-      // Disable looping for segment playback
+      // 禁用自动循环，由 segment 逻辑控制播放
       startAt: video.currentPlayingSegment.value?.start,
       hideControlsTimer: const Duration(seconds: 600),
+      // 设置长时间隐藏控制栏，避免 segment 播放期间自动隐藏控制条
     );
   }
 
@@ -174,7 +175,7 @@ class VideoPlaylistController extends GetxController {
 
   /// 监听播放位置变化
   void _onPositionChanged() {
-    // 如果正在手动跳转或正在切换视频，则不进行自动纠正
+    // 跳过手动跳转和视频切换期间的位置监听，避免逻辑冲突
     if (_isManualSeeking || _isSwitchingVideo) return;
 
     final video = currentPlayingVideo.value;
@@ -186,33 +187,30 @@ class VideoPlaylistController extends GetxController {
     final currentSegment = video.currentPlayingSegment.value;
     if (currentSegment == null) return;
 
-    // 超出当前区间结束时间
+    // 播放超出当前区间结束时间，自动跳转到下一个区间或视频
     if (position > currentSegment.end) {
-      // 使用循环链表直接获取下一个区间
       final nextSegment = currentSegment.nextSegment;
-
-      // 检查当前区间是否是最后一个区间
       final isLastSegment = currentSegment == video.segments.last;
 
       if (isLastSegment) {
-        // 所有区间播放完毕，切换到下一个视频
+        // 最后一个区间播放完毕，暂停并切换到下一个视频
         _isSwitchingVideo = true;
         _videoPlayerController!.pause();
         video.reset();
         final nextVideo = video.nextVideo;
 
-        // 使用 Future.microtask 延迟执行，让当前监听器回调先完成
+        // 使用 microtask 异步执行，确保当前监听器回调完成，避免状态不一致
         Future.microtask(() async {
           await _switchToVideo(nextVideo);
           _isSwitchingVideo = false;
         });
       } else {
-        // 还有后续区间，跳转到下一个区间
+        // 还有后续区间，跳转到下一个区间的起始位置
         video.setPlayingSegment(nextSegment);
         _videoPlayerController!.seekTo(nextSegment.start);
       }
     }
-    // 用户拖动到区间之前
+    // 位置在区间开始之前，自动调整到区间起始位置
     else if (position < currentSegment.start) {
       _videoPlayerController!.seekTo(currentSegment.start);
     }
@@ -225,13 +223,12 @@ class VideoPlaylistController extends GetxController {
     final video = segment.parentVideo;
     video.setPlayingSegment(segment);
 
-    // 设置手动跳转标志，防止位置监听器干扰
+    // 设置手动跳转标志，阻止位置监听器在跳转过程中自动调整位置
     _isManualSeeking = true;
 
-    // 执行跳转操作
     await _videoPlayerController!.seekTo(segment.start);
 
-    // 等待跳转完成后重置标志（500ms 延迟确保 seek 操作完成并稳定）
+    // 延迟 500ms 重置标志，确保 seek 操作完成且位置稳定
     Future.delayed(const Duration(milliseconds: 500), () {
       _isManualSeeking = false;
     });
@@ -241,14 +238,14 @@ class VideoPlaylistController extends GetxController {
   ///
   /// [newVideo] 要切换到的视频
   Future<void> _switchToVideo(PlaylistVideo newVideo) async {
-    // 重置当前视频状态(如果存在)
+    // 重置当前视频状态，释放旧的 segment 引用
     currentPlayingVideo.value?.reset();
-    // 赋值新视频
     currentPlayingVideo.value = newVideo;
 
-    // 在初始化新播放器前，先清理旧的播放器资源
+    // 先清理旧的播放器资源，避免内存泄漏和状态冲突
     await _disposeOldPlayer();
 
+    // 创建并初始化新的播放器
     _videoPlayerController = VideoPlayerController.networkUrl(
       Uri.parse(newVideo.url),
     );
@@ -258,26 +255,24 @@ class VideoPlaylistController extends GetxController {
       video: newVideo,
     );
 
-    // 监听视频播放器初始化状态
+    // 添加初始化状态监听器
     _videoPlayerController!.addListener(_updateInitializedState);
     _updateInitializedState();
 
-    // 根据是否有区间来确定播放起点
+    // 确定播放起点：无区间从 0 秒开始，有区间从指定 segment 开始
     if (newVideo.segments.isEmpty) {
-      // 没有区间，从 0 秒开始播放
       await _videoPlayerController!.seekTo(Duration.zero);
     } else {
-      // 有区间，确定初始区间
+      // 未指定区间时默认使用第一个区间
       if (newVideo.currentPlayingSegment.value == null) {
-        // 未指定初始区间，使用第一个区间
         newVideo.setPlayingSegment(newVideo.segments.first);
       }
-      // 跳转到区间起始位置
       await _videoPlayerController!.seekTo(
         newVideo.currentPlayingSegment.value!.start,
       );
     }
 
+    // 最后添加位置监听器，避免初始化期间的干扰
     _videoPlayerController!.addListener(_onPositionChanged);
   }
 
@@ -286,13 +281,13 @@ class VideoPlaylistController extends GetxController {
     final video = segment.parentVideo;
     final currentVideo = currentPlayingVideo.value;
 
-    // 直接比较视频是否相等（包括 null 情况）
+    // 判断是不同视频需要切换，还是同一视频只需跳转区间
     if (currentVideo != video) {
-      // 不相等：切换新视频
+      // 不同视频：设置目标 segment 并切换到新视频
       video.setPlayingSegment(segment);
       await _switchToVideo(video);
     } else {
-      // 相等：同一视频，直接跳转到指定区间
+      // 同一视频：仅跳转到指定区间，无需重新初始化播放器
       await _jumpToSegment(segment);
     }
   }
