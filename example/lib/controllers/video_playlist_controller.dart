@@ -129,8 +129,8 @@ class VideoPlaylistController extends GetxController {
 
   /// 清理旧的播放器资源
   Future<void> _disposeOldPlayer() async {
-    // 停止区间播放管理
-    _stopSegmentPlayback();
+    _isManualSeeking = false; // 重置手动跳转标志
+    _videoPlayerController?.removeListener(_onPositionChanged);
 
     // 移除监听器
     _videoPlayerController?.removeListener(_updateInitializedState);
@@ -149,6 +149,11 @@ class VideoPlaylistController extends GetxController {
 
   /// 初始化播放器
   Future<void> initializePlayer(VideoSegmentConfig config) async {
+    // 重置当前视频状态(如果存在)
+    currentPlayingConfig.value?.reset();
+    // 赋值新配置
+    currentPlayingConfig.value = config;
+
     // 在初始化新播放器前，先清理旧的播放器资源
     await _disposeOldPlayer();
 
@@ -193,7 +198,8 @@ class VideoPlaylistController extends GetxController {
       videoPlayerController: videoPlayerController,
       autoPlay: true,
       zoomAndPan: true,
-      looping: false, // Disable looping for segment playback
+      looping: false,
+      // Disable looping for segment playback
       startAt: config.currentPlayingSegment.value?.start,
       hideControlsTimer: const Duration(seconds: 600),
     );
@@ -205,12 +211,6 @@ class VideoPlaylistController extends GetxController {
         _chewieController != null &&
         _videoPlayerController != null &&
         _videoPlayerController!.value.isInitialized;
-  }
-
-  /// 停止区间播放管理
-  void _stopSegmentPlayback() {
-    _isManualSeeking = false; // 重置手动跳转标志
-    _videoPlayerController?.removeListener(_onPositionChanged);
   }
 
   /// 监听播放位置变化
@@ -237,7 +237,6 @@ class VideoPlaylistController extends GetxController {
 
       if (isLastSegment) {
         // 所有区间播放完毕，切换到下一个视频
-        _stopSegmentPlayback();
         _videoPlayerController!.pause();
         config.reset();
         final nextConfig = config.nextVideo;
@@ -254,33 +253,10 @@ class VideoPlaylistController extends GetxController {
     }
   }
 
-  /// 跳转到指定区间
-  void _jumpToSegment(VideoSegmentConfig config) async {
-    final targetSegment = config.currentPlayingSegment.value;
-    if (targetSegment == null) return;
-
-    // 设置手动跳转标志，防止位置监听器干扰
-    _isManualSeeking = true;
-
-    // 执行跳转操作
-    await _videoPlayerController!.seekTo(targetSegment.start);
-
-    // 等待跳转完成后重置标志（500ms 延迟确保 seek 操作完成并稳定）
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _isManualSeeking = false;
-    });
-  }
-
   /// 切换到指定视频
   ///
   /// [newConfig] 要切换到的视频配置
   Future<void> switchToVideo(VideoSegmentConfig newConfig) async {
-    // 重置当前视频状态(如果存在)
-    currentPlayingConfig.value?.reset();
-
-    // 设置新的播放配置
-    currentPlayingConfig.value = newConfig;
-
     // initializePlayer 会自动处理区间选择逻辑
     await initializePlayer(newConfig);
   }
@@ -295,14 +271,24 @@ class VideoPlaylistController extends GetxController {
     // 直接比较配置是否相等（包括 null 情况）
     if (currentConfig != config) {
       // 不相等：切换新视频
+
       // 重置旧配置状态（如果存在）
       currentConfig?.reset();
-      // 赋值新配置
-      currentPlayingConfig.value = config;
+
       await initializePlayer(config);
     } else {
       // 相等：同一视频，直接跳转到指定区间
-      _jumpToSegment(config);
+
+      // 设置手动跳转标志，防止位置监听器干扰
+      _isManualSeeking = true;
+
+      // 执行跳转操作
+      await _videoPlayerController!.seekTo(segment.start);
+
+      // 等待跳转完成后重置标志（500ms 延迟确保 seek 操作完成并稳定）
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _isManualSeeking = false;
+      });
     }
   }
 
