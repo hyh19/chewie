@@ -11,7 +11,7 @@ class PlaybackSegment {
 
   final Duration start;
   final Duration end;
-  late final VideoSegmentConfig parentConfig;
+  late final PlaylistVideo parentVideo;
   final RxBool isPlaying;
   late final PlaybackSegment nextSegment;
 

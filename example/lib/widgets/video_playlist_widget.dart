@@ -7,19 +7,19 @@ import 'package:get/get.dart';
 ///
 /// 显示所有视频 URL 及其播放区间，支持折叠/展开，高亮当前播放项
 class VideoPlaylistWidget extends StatelessWidget {
-  const VideoPlaylistWidget({super.key, required this.videoConfigs});
+  const VideoPlaylistWidget({super.key, required this.playlistVideos});
 
-  final RxList<VideoSegmentConfig> videoConfigs;
+  final RxList<PlaylistVideo> playlistVideos;
 
   @override
   Widget build(BuildContext context) {
     return Obx(
       () => ListView.builder(
-        itemCount: videoConfigs.length,
+        itemCount: playlistVideos.length,
         itemBuilder: (context, index) {
-          final config = videoConfigs[index];
+          final video = playlistVideos[index];
 
-          return VideoPlaylistItemWidget(config: config);
+          return VideoPlaylistItemWidget(video: video);
         },
       ),
     );

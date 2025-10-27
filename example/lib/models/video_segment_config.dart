@@ -1,26 +1,24 @@
 import 'package:chewie_example/models/playback_segment.dart';
 import 'package:get/get.dart';
 
-/// 视频及其播放区间的配置
-class VideoSegmentConfig {
-  VideoSegmentConfig({
-    required this.url,
-    PlaybackSegment? currentPlayingSegment,
-  }) : segments = <PlaybackSegment>[],
-       currentPlayingSegment = Rx<PlaybackSegment?>(currentPlayingSegment);
+/// 播放列表中的视频及其播放区间
+class PlaylistVideo {
+  PlaylistVideo({required this.url, PlaybackSegment? currentPlayingSegment})
+    : segments = <PlaybackSegment>[],
+      currentPlayingSegment = Rx<PlaybackSegment?>(currentPlayingSegment);
 
   final String url;
   final List<PlaybackSegment> segments;
   final Rx<PlaybackSegment?> currentPlayingSegment;
-  late final VideoSegmentConfig nextVideo;
+  late final PlaylistVideo nextVideo;
 
   /// 添加一个 segment
   void addSegment(PlaybackSegment segment) {
-    segment.parentConfig = this;
+    segment.parentVideo = this;
     segments.add(segment);
   }
 
-  /// 重置配置到初始状态
+  /// 重置视频到初始状态
   void reset() {
     currentPlayingSegment.value = null;
     for (final segment in segments) {

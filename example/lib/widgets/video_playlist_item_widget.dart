@@ -7,9 +7,9 @@ import 'package:get/get.dart';
 ///
 /// 用于显示单个视频及其所有播放区间
 class VideoPlaylistItemWidget extends StatelessWidget {
-  const VideoPlaylistItemWidget({super.key, required this.config});
+  const VideoPlaylistItemWidget({super.key, required this.video});
 
-  final VideoSegmentConfig config;
+  final PlaylistVideo video;
 
   /// 从 URL 中提取文件名
   String _extractFileName(String url) {
@@ -28,7 +28,7 @@ class VideoPlaylistItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final isCurrentVideo = config.isPlaying;
+      final isCurrentVideo = video.isPlaying;
 
       return Card(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -44,17 +44,17 @@ class VideoPlaylistItemWidget extends StatelessWidget {
                 : Colors.grey,
           ),
           title: Text(
-            _extractFileName(config.url),
+            _extractFileName(video.url),
             style: TextStyle(
               fontWeight: isCurrentVideo ? FontWeight.bold : FontWeight.normal,
               color: isCurrentVideo ? Theme.of(context).primaryColor : null,
             ),
           ),
           subtitle: Text(
-            '${config.segments.length} 个播放区间',
+            '${video.segments.length} 个播放区间',
             style: const TextStyle(fontSize: 12),
           ),
-          children: config.segments.map((segment) {
+          children: video.segments.map((segment) {
             return SegmentItemWidget(segment: segment);
           }).toList(),
         ),
