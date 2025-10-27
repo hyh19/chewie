@@ -162,10 +162,14 @@ class VideoPlaylistController extends GetxController {
       Uri.parse(config.url),
     );
     await _videoPlayerController!.initialize();
-    _createChewieController(
+    _chewieController = _createChewieController(
       videoPlayerController: _videoPlayerController!,
       config: config,
     );
+
+    // 监听视频播放器初始化状态
+    _videoPlayerController!.addListener(_updateInitializedState);
+    _updateInitializedState();
 
     // 启动区间播放管理
     _isSegmentPlaybackActive = true;
@@ -189,11 +193,11 @@ class VideoPlaylistController extends GetxController {
   }
 
   /// 创建 Chewie 控制器
-  void _createChewieController({
+  ChewieController _createChewieController({
     required VideoPlayerController videoPlayerController,
     required VideoSegmentConfig config,
   }) {
-    _chewieController = ChewieController(
+    return ChewieController(
       videoPlayerController: videoPlayerController,
       autoPlay: true,
       zoomAndPan: true,
@@ -213,10 +217,6 @@ class VideoPlaylistController extends GetxController {
 
       hideControlsTimer: const Duration(seconds: 600),
     );
-
-    // 监听视频播放器初始化状态
-    _videoPlayerController!.addListener(_updateInitializedState);
-    _updateInitializedState();
   }
 
   /// 更新初始化状态
