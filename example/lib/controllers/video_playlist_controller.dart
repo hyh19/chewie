@@ -1,7 +1,6 @@
 import 'package:chewie/chewie.dart';
 import 'package:chewie_example/models/playback_segment.dart';
 import 'package:chewie_example/models/video_segment_config.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
@@ -151,48 +150,6 @@ class VideoPlaylistController extends GetxController {
     isInitialized.value = false;
   }
 
-  /// 初始化播放器
-  Future<void> initializePlayer(VideoSegmentConfig config) async {
-    // 重置当前视频状态(如果存在)
-    currentPlayingConfig.value?.reset();
-    // 赋值新配置
-    currentPlayingConfig.value = config;
-
-    // 在初始化新播放器前，先清理旧的播放器资源
-    await _disposeOldPlayer();
-
-    _videoPlayerController = VideoPlayerController.networkUrl(
-      Uri.parse(config.url),
-    );
-    await _videoPlayerController!.initialize();
-    _chewieController = _createChewieController(
-      videoPlayerController: _videoPlayerController!,
-      config: config,
-    );
-
-    // 监听视频播放器初始化状态
-    _videoPlayerController!.addListener(_updateInitializedState);
-    _updateInitializedState();
-
-    // 根据是否有区间来确定播放起点
-    if (config.segments.isEmpty) {
-      // 没有区间，从 0 秒开始播放
-      await _videoPlayerController!.seekTo(Duration.zero);
-    } else {
-      // 有区间，确定初始区间
-      if (config.currentPlayingSegment.value == null) {
-        // 未指定初始区间，使用第一个区间
-        config.setPlayingSegment(config.segments.first);
-      }
-      // 跳转到区间起始位置
-      await _videoPlayerController!.seekTo(
-        config.currentPlayingSegment.value!.start,
-      );
-    }
-
-    _videoPlayerController!.addListener(_onPositionChanged);
-  }
-
   /// 创建 Chewie 控制器
   ChewieController _createChewieController({
     required VideoPlayerController videoPlayerController,
@@ -263,12 +220,48 @@ class VideoPlaylistController extends GetxController {
     }
   }
 
-  /// 切换到指定视频
+  /// 切换到指定视频（初始化和切换的统一入口）
   ///
   /// [newConfig] 要切换到的视频配置
   Future<void> switchToVideo(VideoSegmentConfig newConfig) async {
-    // initializePlayer 会自动处理区间选择逻辑
-    await initializePlayer(newConfig);
+    // 重置当前视频状态(如果存在)
+    currentPlayingConfig.value?.reset();
+    // 赋值新配置
+    currentPlayingConfig.value = newConfig;
+
+    // 在初始化新播放器前，先清理旧的播放器资源
+    await _disposeOldPlayer();
+
+    _videoPlayerController = VideoPlayerController.networkUrl(
+      Uri.parse(newConfig.url),
+    );
+    await _videoPlayerController!.initialize();
+    _chewieController = _createChewieController(
+      videoPlayerController: _videoPlayerController!,
+      config: newConfig,
+    );
+
+    // 监听视频播放器初始化状态
+    _videoPlayerController!.addListener(_updateInitializedState);
+    _updateInitializedState();
+
+    // 根据是否有区间来确定播放起点
+    if (newConfig.segments.isEmpty) {
+      // 没有区间，从 0 秒开始播放
+      await _videoPlayerController!.seekTo(Duration.zero);
+    } else {
+      // 有区间，确定初始区间
+      if (newConfig.currentPlayingSegment.value == null) {
+        // 未指定初始区间，使用第一个区间
+        newConfig.setPlayingSegment(newConfig.segments.first);
+      }
+      // 跳转到区间起始位置
+      await _videoPlayerController!.seekTo(
+        newConfig.currentPlayingSegment.value!.start,
+      );
+    }
+
+    _videoPlayerController!.addListener(_onPositionChanged);
   }
 
   /// 处理区间点击
@@ -281,11 +274,7 @@ class VideoPlaylistController extends GetxController {
     // 直接比较配置是否相等（包括 null 情况）
     if (currentConfig != config) {
       // 不相等：切换新视频
-
-      // 重置旧配置状态（如果存在）
-      // currentConfig?.reset();
-
-      await initializePlayer(config);
+      await switchToVideo(config);
     } else {
       // 相等：同一视频，直接跳转到指定区间
 
