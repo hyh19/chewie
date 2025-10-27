@@ -117,10 +117,33 @@ class VideoPlaylistController extends GetxController {
     videoConfigs.value = configs;
   }
 
+  /// 清理旧的播放器资源
+  Future<void> _disposeOldPlayer() async {
+    // 停止区间播放管理
+    _stopSegmentPlayback();
+
+    // 移除监听器
+    _videoPlayerController?.removeListener(_updateInitializedState);
+
+    // 释放 Chewie 控制器
+    _chewieController?.dispose();
+    _chewieController = null;
+
+    // 释放视频播放器控制器
+    await _videoPlayerController?.dispose();
+    _videoPlayerController = null;
+
+    // 更新初始化状态
+    isInitialized.value = false;
+  }
+
   /// 初始化播放器
   Future<void> initializePlayer(VideoSegmentConfig config) async {
     final currentSegment = config.currentPlayingSegment.value;
     if (currentSegment == null) return;
+
+    // 在初始化新播放器前，先清理旧的播放器资源
+    await _disposeOldPlayer();
 
     _videoPlayerController = VideoPlayerController.networkUrl(
       Uri.parse(config.url),
@@ -246,11 +269,7 @@ class VideoPlaylistController extends GetxController {
 
   /// 切换视频
   Future<void> toggleVideo() async {
-    if (_videoPlayerController == null) return;
     if (currentPlayingConfig.value == null) return;
-
-    await _videoPlayerController!.pause();
-    _stopSegmentPlayback();
 
     // 找到当前播放的配置
     final currentIndex = videoConfigs.indexWhere((config) => config.isPlaying);
@@ -294,11 +313,7 @@ class VideoPlaylistController extends GetxController {
 
   @override
   void onClose() {
-    _stopSegmentPlayback();
-    _videoPlayerController?.removeListener(_updateInitializedState);
-    isInitialized.value = false;
-    _videoPlayerController?.dispose();
-    _chewieController?.dispose();
+    _disposeOldPlayer();
     super.onClose();
   }
 }
