@@ -28,9 +28,6 @@ class VideoPlaylistController extends GetxController {
   // 区间播放管理器
   SegmentPlaybackManager? _segmentManager;
 
-  // Getter: 获取 videoPlayerController
-  VideoPlayerController? get videoPlayerController => _videoPlayerController;
-
   // Getter: 获取 chewieController
   ChewieController? get chewieController => _chewieController;
 
@@ -46,7 +43,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第一个视频配置
     final config1 = VideoSegmentConfig(
-      url: "http://192.168.31.174:3923/Downloads/VolkswagenGTIReview.mp4",
+      url: "http://192.168.50.182:3923/Downloads/VolkswagenGTIReview.mp4",
     );
     config1.addSegment(
       PlaybackSegment(
@@ -70,7 +67,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第二个视频配置
     final config2 = VideoSegmentConfig(
-      url: "http://192.168.31.174:3923/Downloads/TearsOfSteel.mp4",
+      url: "http://192.168.50.182:3923/Downloads/TearsOfSteel.mp4",
     );
     config2.addSegment(
       PlaybackSegment(
@@ -94,7 +91,7 @@ class VideoPlaylistController extends GetxController {
 
     // 创建第三个视频配置
     final config3 = VideoSegmentConfig(
-      url: "http://192.168.31.174:3923/Downloads/Sintel.mp4",
+      url: "http://192.168.50.182:3923/Downloads/Sintel.mp4",
     );
     config3.addSegment(
       PlaybackSegment(
