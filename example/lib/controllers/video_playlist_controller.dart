@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:chewie/chewie.dart';
 import 'package:chewie_example/models/playback_segment.dart';
 import 'package:chewie_example/models/video_segment_config.dart';
 import 'package:chewie_example/services/storage_service.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
@@ -18,6 +21,12 @@ class VideoPlaylistController extends GetxController {
   // 是否已初始化（响应式变量）
   final RxBool isInitialized = false.obs;
 
+  // 是否有错误（响应式变量）
+  final RxBool hasError = false.obs;
+
+  // 错误消息（响应式变量）
+  final RxString errorMessage = ''.obs;
+
   // 视频播放器控制器，管理视频播放状态和位置
   VideoPlayerController? _videoPlayerController;
 
@@ -32,6 +41,19 @@ class VideoPlaylistController extends GetxController {
 
   // Getter: 获取 chewieController
   ChewieController? get chewieController => _chewieController;
+
+  /// 清除错误状态
+  void _clearError() {
+    hasError.value = false;
+    errorMessage.value = '';
+  }
+
+  /// 设置错误状态
+  void _setError(String message) {
+    hasError.value = true;
+    errorMessage.value = message;
+    isInitialized.value = false;
+  }
 
   @override
   void onInit() {
@@ -135,7 +157,7 @@ class VideoPlaylistController extends GetxController {
     _chewieController?.dispose();
     _chewieController = null;
 
-    // 更新初始化状态
+    // 更新初始化状态，但不清除错误状态（由调用方决定）
     isInitialized.value = false;
   }
 
@@ -229,42 +251,112 @@ class VideoPlaylistController extends GetxController {
   ///
   /// [newVideo] 要切换到的视频
   Future<void> _switchToVideo(PlaylistVideo newVideo) async {
-    // 重置当前视频状态，释放旧的 segment 引用
-    currentPlayingVideo.value?.reset();
-    currentPlayingVideo.value = newVideo;
+    // 清除之前的错误状态
+    _clearError();
 
-    // 先清理旧的播放器资源，避免内存泄漏和状态冲突
-    await _disposeOldPlayer();
+    try {
+      // 重置当前视频状态，释放旧的 segment 引用
+      currentPlayingVideo.value?.reset();
+      currentPlayingVideo.value = newVideo;
 
-    // 创建并初始化新的播放器
-    _videoPlayerController = VideoPlayerController.networkUrl(
-      Uri.parse(newVideo.url),
-    );
-    await _videoPlayerController!.initialize();
-    _chewieController = _createChewieController(
-      videoPlayerController: _videoPlayerController!,
-      video: newVideo,
-    );
+      // 先清理旧的播放器资源，避免内存泄漏和状态冲突
+      await _disposeOldPlayer();
 
-    // 添加初始化状态监听器
-    _videoPlayerController!.addListener(_updateInitializedState);
-    _updateInitializedState();
+      // 创建并初始化新的播放器
+      _videoPlayerController = VideoPlayerController.networkUrl(
+        Uri.parse(newVideo.url),
+      );
 
-    // 确定播放起点：无区间从 0 秒开始，有区间从指定 segment 开始
-    if (newVideo.segments.isEmpty) {
-      await _videoPlayerController!.seekTo(Duration.zero);
-    } else {
-      // 未指定区间时默认使用第一个区间
-      if (newVideo.currentPlayingSegment.value == null) {
-        newVideo.setPlayingSegment(newVideo.segments.first);
+      // 使用超时处理，防止长时间等待
+      try {
+        await _videoPlayerController!.initialize().timeout(
+          const Duration(seconds: 10),
+        );
+      } on TimeoutException {
+        // 超时错误
+        await _videoPlayerController?.dispose();
+        _videoPlayerController = null;
+        _setError('视频加载超时，请检查网络连接或重试');
+        Get.snackbar(
+          '错误',
+          '视频加载超时：${_extractFileName(newVideo.url)}',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+        return;
+      } on PlatformException catch (e) {
+        // 平台异常（如无法连接服务器）
+        await _videoPlayerController?.dispose();
+        _videoPlayerController = null;
+
+        String errorMsg = '无法加载视频';
+        if (e.message != null && e.message!.contains('connect')) {
+          errorMsg = '无法连接到服务器，请检查网络连接或视频链接是否正确';
+        } else if (e.message != null && e.message!.contains('format')) {
+          errorMsg = '不支持的视频格式';
+        } else if (e.message != null) {
+          errorMsg = e.message!;
+        }
+
+        _setError(errorMsg);
+        Get.snackbar(
+          '错误',
+          '加载失败：${_extractFileName(newVideo.url)}\n$errorMsg',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      } on Exception catch (e) {
+        // 其他异常
+        await _videoPlayerController?.dispose();
+        _videoPlayerController = null;
+        _setError('视频加载失败：${e.toString()}');
+        Get.snackbar(
+          '错误',
+          '加载失败：${_extractFileName(newVideo.url)}',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+        return;
       }
-      await _videoPlayerController!.seekTo(
-        newVideo.currentPlayingSegment.value!.start,
+
+      // 初始化成功，创建 Chewie 控制器
+      _chewieController = _createChewieController(
+        videoPlayerController: _videoPlayerController!,
+        video: newVideo,
+      );
+
+      // 添加初始化状态监听器
+      _videoPlayerController!.addListener(_updateInitializedState);
+      _updateInitializedState();
+
+      // 确定播放起点：无区间从 0 秒开始，有区间从指定 segment 开始
+      if (newVideo.segments.isEmpty) {
+        await _videoPlayerController!.seekTo(Duration.zero);
+      } else {
+        // 未指定区间时默认使用第一个区间
+        if (newVideo.currentPlayingSegment.value == null) {
+          newVideo.setPlayingSegment(newVideo.segments.first);
+        }
+        await _videoPlayerController!.seekTo(
+          newVideo.currentPlayingSegment.value!.start,
+        );
+      }
+
+      // 最后添加位置监听器，避免初始化期间的干扰
+      _videoPlayerController!.addListener(_onPositionChanged);
+    } catch (e) {
+      // 捕获所有未预期的错误
+      await _videoPlayerController?.dispose();
+      _videoPlayerController = null;
+      _setError('发生未知错误：${e.toString()}');
+      Get.snackbar(
+        '错误',
+        '加载失败：${_extractFileName(newVideo.url)}',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 3),
       );
     }
-
-    // 最后添加位置监听器，避免初始化期间的干扰
-    _videoPlayerController!.addListener(_onPositionChanged);
   }
 
   /// 处理区间点击
@@ -368,6 +460,30 @@ class VideoPlaylistController extends GetxController {
       return '${duration.inHours}:$minutes:$seconds';
     }
     return '$minutes:$seconds';
+  }
+
+  /// 从 URL 中提取文件名
+  String _extractFileName(String url) {
+    try {
+      // 解析 URL 并提取最后一个路径段作为文件名
+      final uri = Uri.parse(url);
+      final pathSegments = uri.pathSegments;
+      if (pathSegments.isNotEmpty) {
+        return pathSegments.last;
+      }
+      return url;
+    } catch (e) {
+      // 解析失败时返回原始 URL
+      return url;
+    }
+  }
+
+  /// 重试加载当前视频
+  Future<void> retryCurrentVideo() async {
+    final currentVideo = currentPlayingVideo.value;
+    if (currentVideo != null) {
+      await _switchToVideo(currentVideo);
+    }
   }
 
   /// 删除指定视频

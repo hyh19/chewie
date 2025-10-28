@@ -36,19 +36,106 @@ class ChewieDemo extends StatelessWidget {
             width: screenWidth,
             child: GetX<VideoPlaylistController>(
               builder: (controller) {
+                // 如果发生错误，显示错误 UI
+                if (controller.hasError.value) {
+                  return Container(
+                    color: Colors.black87,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 64,
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              '视频加载失败',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              controller.errorMessage.value,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 32),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () =>
+                                      controller.retryCurrentVideo(),
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('重试'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                OutlinedButton.icon(
+                                  onPressed:
+                                      controller.currentPlayingVideo.value !=
+                                          null
+                                      ? () => controller.deleteVideo(
+                                          controller.currentPlayingVideo.value!,
+                                        )
+                                      : null,
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: const Text('删除视频'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: const BorderSide(
+                                      color: Colors.white70,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
                 // 播放器初始化完成后显示 Chewie 控件
                 if (controller.isInitialized.value) {
                   return Chewie(controller: controller.chewieController!);
                 } else {
                   // 初始化中显示加载指示器
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 20),
-                        Text('Loading'),
-                      ],
+                  return Container(
+                    color: Colors.black87,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Colors.white),
+                          SizedBox(height: 20),
+                          Text(
+                            '正在加载视频...',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
