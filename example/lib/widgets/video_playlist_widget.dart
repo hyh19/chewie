@@ -13,8 +13,30 @@ class VideoPlaylistWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 使用 Obx 响应式包装，列表变化时自动重新构建
-    return Obx(
-      () => ListView.builder(
+    return Obx(() {
+      // 如果列表为空，显示提示信息
+      if (playlistVideos.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.video_library, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                '播放列表为空',
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '点击右下角按钮添加视频',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return ListView.builder(
         itemCount: playlistVideos.length,
         // 动态构建每个视频条目
         itemBuilder: (context, index) {
@@ -22,7 +44,7 @@ class VideoPlaylistWidget extends StatelessWidget {
 
           return VideoPlaylistItemWidget(video: video);
         },
-      ),
-    );
+      );
+    });
   }
 }

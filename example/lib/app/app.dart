@@ -1,6 +1,7 @@
 import 'package:chewie/chewie.dart';
 import 'package:chewie_example/app/theme.dart';
 import 'package:chewie_example/controllers/video_playlist_controller.dart';
+import 'package:chewie_example/widgets/add_video_page.dart';
 import 'package:chewie_example/widgets/video_playlist_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -97,6 +98,25 @@ class ChewieDemo extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // 使用 GetX 显示 BottomSheet
+          final urls = await Get.bottomSheet<List<String>>(
+            const AddVideoBottomSheet(),
+            isScrollControlled: true,
+            backgroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+          );
+
+          // 如果返回了 URL 列表，添加到播放列表
+          if (urls != null && urls.isNotEmpty) {
+            await controller.addVideos(urls);
+          }
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }

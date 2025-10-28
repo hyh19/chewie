@@ -1,3 +1,4 @@
+import 'package:chewie_example/controllers/video_playlist_controller.dart';
 import 'package:chewie_example/models/video_segment_config.dart';
 import 'package:chewie_example/widgets/segment_item_widget.dart';
 import 'package:flutter/material.dart';
@@ -55,9 +56,17 @@ class VideoPlaylistItemWidget extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            '${video.segments.length} 个播放区间',
+            video.segments.isEmpty ? '无播放区间' : '${video.segments.length} 个播放区间',
             style: const TextStyle(fontSize: 12),
           ),
+          // 如果视频没有播放区间，点击时直接播放；否则展开显示区间列表
+          onExpansionChanged: video.segments.isEmpty
+              ? (expanded) {
+                  // 无区间时点击直接播放视频
+                  final controller = Get.find<VideoPlaylistController>();
+                  controller.onVideoTapped(video);
+                }
+              : null,
           // 将每个 segment 映射为 SegmentItemWidget
           children: video.segments.map((segment) {
             return SegmentItemWidget(segment: segment);

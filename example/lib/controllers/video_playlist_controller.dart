@@ -40,91 +40,42 @@ class VideoPlaylistController extends GetxController {
 
   /// 初始化播放列表视频
   void _initializePlaylistVideos() {
-    final videos = <PlaylistVideo>[];
+    // 初始化为空列表，用户可以通过添加按钮添加视频
+    playlistVideos.value = [];
+  }
 
-    // 创建第一个视频
-    final video1 = PlaylistVideo(
-      url: "http://8.217.255.65:6065/MIDA-362.mp4",
-    );
-    video1.addSegment(
-      PlaybackSegment(
-        start: const Duration(seconds: 15),
-        end: const Duration(seconds: 30),
-      ),
-    );
-    video1.addSegment(
-      PlaybackSegment(
-        start: const Duration(seconds: 45),
-        end: const Duration(minutes: 1, seconds: 0),
-      ),
-    );
-    video1.addSegment(
-      PlaybackSegment(
-        start: const Duration(minutes: 1, seconds: 15),
-        end: const Duration(minutes: 1, seconds: 30),
-      ),
-    );
-    videos.add(video1);
+  /// 添加视频到播放列表
+  ///
+  /// [urls] 视频 URL 列表
+  Future<void> addVideos(List<String> urls) async {
+    if (urls.isEmpty) return;
 
-    // 创建第二个视频
-    final video2 = PlaylistVideo(
-      url: "http://8.217.255.65:6065/JUR-572.mp4",
-    );
-    video2.addSegment(
-      PlaybackSegment(
-        start: const Duration(seconds: 30),
-        end: const Duration(seconds: 45),
-      ),
-    );
-    video2.addSegment(
-      PlaybackSegment(
-        start: const Duration(minutes: 1, seconds: 0),
-        end: const Duration(minutes: 1, seconds: 15),
-      ),
-    );
-    video2.addSegment(
-      PlaybackSegment(
-        start: const Duration(minutes: 1, seconds: 30),
-        end: const Duration(minutes: 1, seconds: 45),
-      ),
-    );
-    videos.add(video2);
-
-    // 创建第三个视频
-    final video3 = PlaylistVideo(
-      url: "http://8.217.255.65:6065/SONE-940.mp4",
-    );
-    video3.addSegment(
-      PlaybackSegment(
-        start: const Duration(seconds: 20),
-        end: const Duration(seconds: 35),
-      ),
-    );
-    video3.addSegment(
-      PlaybackSegment(
-        start: const Duration(seconds: 50),
-        end: const Duration(minutes: 1, seconds: 5),
-      ),
-    );
-    video3.addSegment(
-      PlaybackSegment(
-        start: const Duration(minutes: 1, seconds: 30),
-        end: const Duration(minutes: 1, seconds: 45),
-      ),
-    );
-    videos.add(video3);
-
-    // 建立视频循环链表，最后一个视频指向第一个，实现无缝循环播放
-    for (int i = 0; i < videos.length; i++) {
-      videos[i].nextVideo = videos[(i + 1) % videos.length];
+    final newVideos = <PlaylistVideo>[];
+    for (final url in urls) {
+      // 创建新的 PlaylistVideo 对象，初始时没有播放区间
+      final video = PlaylistVideo(url: url);
+      newVideos.add(video);
     }
 
-    // 为每个视频建立 segment 循环链表，所有区间播放完后自动跳到下一个区间
-    for (final video in videos) {
-      video.linkSegments();
+    // 判断是否是第一次添加视频
+    final wasEmpty = playlistVideos.isEmpty;
+
+    // 将新视频添加到列表末尾
+    playlistVideos.addAll(newVideos);
+
+    // 更新视频循环链表，最后一个视频指向第一个，实现无缝循环播放
+    if (playlistVideos.isNotEmpty) {
+      for (int i = 0; i < playlistVideos.length; i++) {
+        playlistVideos[i].nextVideo =
+            playlistVideos[(i + 1) % playlistVideos.length];
+      }
     }
 
-    playlistVideos.value = videos;
+    // 如果是第一次添加视频（列表之前为空），自动初始化播放第一个视频
+    if (wasEmpty && playlistVideos.isNotEmpty) {
+      final firstVideo = playlistVideos.first;
+      await _switchToVideo(firstVideo);
+    }
   }
 
   /// 清理旧的播放器资源
@@ -289,6 +240,14 @@ class VideoPlaylistController extends GetxController {
     } else {
       // 同一视频：仅跳转到指定区间，无需重新初始化播放器
       await _jumpToSegment(segment);
+    }
+  }
+
+  /// 处理视频项点击（无区间时直接播放）
+  void onVideoTapped(PlaylistVideo video) async {
+    if (video.segments.isEmpty) {
+      // 没有播放区间，直接切换播放该视频
+      await _switchToVideo(video);
     }
   }
 
