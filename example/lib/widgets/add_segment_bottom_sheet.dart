@@ -5,25 +5,56 @@ import 'package:get/get.dart';
 /// 添加播放区间 BottomSheet
 ///
 /// 使用时间选择器让用户输入起始时间和结束时间
+/// 支持编辑模式，传入初始值即可
 class AddSegmentBottomSheet extends StatefulWidget {
-  const AddSegmentBottomSheet({super.key, required this.maxDuration});
+  const AddSegmentBottomSheet({
+    super.key,
+    required this.maxDuration,
+    this.initialStart,
+    this.initialEnd,
+  });
 
   // 视频最大时长，用于验证输入时间不超过总时长
   final Duration? maxDuration;
+  // 初始起始时间（编辑模式）
+  final Duration? initialStart;
+  // 初始结束时间（编辑模式）
+  final Duration? initialEnd;
 
   @override
   State<AddSegmentBottomSheet> createState() => _AddSegmentBottomSheetState();
 }
 
 class _AddSegmentBottomSheetState extends State<AddSegmentBottomSheet> {
+  // 判断是否为编辑模式
+  bool get _isEditMode =>
+      widget.initialStart != null && widget.initialEnd != null;
+
   // 起始时间的分钟数
-  int _startMinutes = 0;
+  late int _startMinutes;
   // 起始时间的秒数
-  int _startSeconds = 0;
+  late int _startSeconds;
   // 结束时间的分钟数
-  int _endMinutes = 0;
+  late int _endMinutes;
   // 结束时间的秒数
-  int _endSeconds = 30;
+  late int _endSeconds;
+
+  @override
+  void initState() {
+    super.initState();
+    // 如果提供了初始值，使用初始值；否则使用默认值
+    if (_isEditMode) {
+      _startMinutes = widget.initialStart!.inMinutes.remainder(60);
+      _startSeconds = widget.initialStart!.inSeconds.remainder(60);
+      _endMinutes = widget.initialEnd!.inMinutes.remainder(60);
+      _endSeconds = widget.initialEnd!.inSeconds.remainder(60);
+    } else {
+      _startMinutes = 0;
+      _startSeconds = 0;
+      _endMinutes = 0;
+      _endSeconds = 30;
+    }
+  }
 
   /// 格式化时间为 Duration 对象
   Duration _getStartDuration() {
@@ -176,9 +207,12 @@ class _AddSegmentBottomSheetState extends State<AddSegmentBottomSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '添加播放区间',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  _isEditMode ? '编辑播放区间' : '添加播放区间',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),

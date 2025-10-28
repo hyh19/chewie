@@ -49,12 +49,31 @@ class VideoPlaylistItemWidget extends StatelessWidget {
                 ? Theme.of(context).primaryColor
                 : Colors.grey,
           ),
-          title: Text(
-            _extractFileName(video.url),
-            style: TextStyle(
-              fontWeight: isCurrentVideo ? FontWeight.bold : FontWeight.normal,
-              color: isCurrentVideo ? Theme.of(context).primaryColor : null,
-            ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _extractFileName(video.url),
+                  style: TextStyle(
+                    fontWeight: isCurrentVideo
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isCurrentVideo
+                        ? Theme.of(context).primaryColor
+                        : null,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                color: Colors.red,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () {
+                  _showDeleteVideoDialog(context, video);
+                },
+              ),
+            ],
           ),
           subtitle: Text(
             video.segments.isEmpty ? '无播放区间' : '${video.segments.length} 个播放区间',
@@ -127,5 +146,27 @@ class VideoPlaylistItemWidget extends StatelessWidget {
         ),
       );
     });
+  }
+
+  /// 显示删除视频确认对话框
+  void _showDeleteVideoDialog(BuildContext context, PlaylistVideo video) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('删除视频'),
+        content: const Text('是否删除该视频及其所有播放区间？'),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              final controller = Get.find<VideoPlaylistController>();
+              controller.deleteVideo(video);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
   }
 }

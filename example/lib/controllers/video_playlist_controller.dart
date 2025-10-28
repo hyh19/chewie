@@ -370,6 +370,154 @@ class VideoPlaylistController extends GetxController {
     return '$minutes:$seconds';
   }
 
+  /// 删除指定视频
+  ///
+  /// [video] 要删除的视频
+  Future<void> deleteVideo(PlaylistVideo video) async {
+    // 判断是否为当前播放的视频
+    final isCurrentVideo = video == currentPlayingVideo.value;
+
+    // 如果是当前播放的视频，先清理播放器资源
+    if (isCurrentVideo) {
+      await _disposeOldPlayer();
+      currentPlayingVideo.value = null;
+
+      // 获取剩余视频列表（在删除前获取）
+      final remainingVideos = playlistVideos.where((v) => v != video).toList();
+
+      // 从列表中移除视频
+      playlistVideos.remove(video);
+
+      // 重新建立视频循环链表
+      _linkVideos();
+
+      // 如果还有其他视频，自动切换到第一个视频
+      if (remainingVideos.isNotEmpty) {
+        await _switchToVideo(remainingVideos.first);
+      }
+    } else {
+      // 不是当前播放视频，直接删除
+      playlistVideos.remove(video);
+
+      // 重新建立视频循环链表
+      _linkVideos();
+    }
+
+    // 保存到本地存储
+    await _savePlaylist();
+
+    Get.snackbar(
+      '成功',
+      '已删除视频',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  /// 删除指定播放区间
+  ///
+  /// [segment] 要删除的区间
+  Future<void> deleteSegment(PlaybackSegment segment) async {
+    final video = segment.parentVideo;
+    final isCurrentSegment =
+        video.currentPlayingSegment.value == segment && segment.isPlaying.value;
+
+    // 从视频的 segments 列表中移除
+    video.segments.remove(segment);
+
+    // 如果删除的是当前播放的区间，需要重置状态
+    if (isCurrentSegment) {
+      video.currentPlayingSegment.value = null;
+      // 如果还有其他区间，自动切换到第一个区间
+      if (video.segments.isNotEmpty) {
+        video.setPlayingSegment(video.segments.first);
+        if (video == currentPlayingVideo.value &&
+            _videoPlayerController != null) {
+          await _videoPlayerController!.seekTo(video.segments.first.start);
+        }
+      } else {
+        // 如果没有区间了，暂停播放
+        if (video == currentPlayingVideo.value) {
+          _videoPlayerController?.pause();
+        }
+      }
+    }
+
+    // 重新建立区间循环链表
+    video.linkSegments();
+
+    // 触发响应式更新
+    final currentList = List<PlaylistVideo>.from(playlistVideos);
+    playlistVideos.value = currentList;
+
+    // 保存到本地存储
+    await _savePlaylist();
+
+    Get.snackbar(
+      '成功',
+      '已删除播放区间',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  /// 更新播放区间的时间
+  ///
+  /// [segment] 要更新的区间
+  /// [newStart] 新的起始时间
+  /// [newEnd] 新的结束时间
+  Future<void> updateSegment({
+    required PlaybackSegment segment,
+    required Duration newStart,
+    required Duration newEnd,
+  }) async {
+    final video = segment.parentVideo;
+    final isCurrentSegment =
+        video.currentPlayingSegment.value == segment && segment.isPlaying.value;
+
+    // 找到区间在列表中的索引位置
+    final segmentIndex = video.segments.indexOf(segment);
+    if (segmentIndex == -1) return;
+
+    // 创建新的区间替换旧区间
+    final newSegment = PlaybackSegment(start: newStart, end: newEnd);
+    newSegment.parentVideo = video;
+    video.segments[segmentIndex] = newSegment;
+
+    // 如果更新的是当前播放的区间，切换到新区间
+    if (isCurrentSegment) {
+      video.setPlayingSegment(newSegment);
+      if (video == currentPlayingVideo.value &&
+          _videoPlayerController != null) {
+        _isManualSeeking = true;
+        await _videoPlayerController!.seekTo(newSegment.start);
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _isManualSeeking = false;
+        });
+      }
+    } else {
+      // 否则只需要设置父引用
+      newSegment.parentVideo = video;
+    }
+
+    // 重新建立区间循环链表
+    video.linkSegments();
+
+    // 触发响应式更新
+    final currentList = List<PlaylistVideo>.from(playlistVideos);
+    playlistVideos.value = currentList;
+
+    // 保存到本地存储
+    await _savePlaylist();
+
+    Get.snackbar(
+      '成功',
+      '已更新播放区间 ${_formatDuration(newStart)} - ${_formatDuration(newEnd)}',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
   @override
   void onClose() {
     _disposeOldPlayer();

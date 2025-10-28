@@ -1,5 +1,6 @@
 import 'package:chewie_example/controllers/video_playlist_controller.dart';
 import 'package:chewie_example/models/playback_segment.dart';
+import 'package:chewie_example/widgets/add_segment_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -49,15 +50,82 @@ class SegmentItemWidget extends StatelessWidget {
             fontSize: 13,
           ),
         ),
-        // 播放中的区间显示播放图标
-        trailing: isPlaying
-            ? Icon(Icons.play_arrow, color: Theme.of(context).primaryColor)
-            : null,
+        // 右侧按钮区域：编辑、删除、播放图标
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 编辑图标按钮
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              color: Colors.grey,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                _handleEditSegment(context);
+              },
+            ),
+            // 删除图标按钮
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              color: Colors.red,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                Get.find<VideoPlaylistController>().deleteSegment(segment);
+              },
+            ),
+            // 播放中的区间显示播放图标
+            if (isPlaying)
+              Icon(
+                Icons.play_arrow,
+                color: Theme.of(context).primaryColor,
+                size: 20,
+              ),
+          ],
+        ),
         // 点击区间时调用控制器切换或跳转到该区间
         onTap: () {
           Get.find<VideoPlaylistController>().onSegmentTapped(segment);
         },
       );
     });
+  }
+
+  /// 处理编辑区间
+  void _handleEditSegment(BuildContext context) async {
+    final controller = Get.find<VideoPlaylistController>();
+    final video = segment.parentVideo;
+    final wasPlaying = video.isPlaying;
+
+    // 如果该视频正在播放，暂停视频
+    if (wasPlaying) {
+      controller.pauseVideo();
+    }
+
+    // 获取视频最大时长
+    final maxDuration = controller.getVideoMaxDuration(video);
+
+    // 显示编辑区间 BottomSheet
+    final result = await Get.bottomSheet<Map<String, Duration>>(
+      AddSegmentBottomSheet(
+        maxDuration: maxDuration,
+        initialStart: segment.start,
+        initialEnd: segment.end,
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+    );
+
+    // 如果返回了时间段，更新区间
+    if (result != null) {
+      controller.updateSegment(
+        segment: segment,
+        newStart: result['start']!,
+        newEnd: result['end']!,
+      );
+    }
   }
 }
