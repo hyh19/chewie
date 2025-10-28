@@ -28,6 +28,7 @@ class ChewieDemo extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      appBar: AppBar(title: const Text('')),
       body: GetX<VideoPlaylistController>(
         builder: (controller) {
           // 根据播放列表是否为空，决定是否显示播放器
