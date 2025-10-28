@@ -1,6 +1,7 @@
 import 'package:chewie/chewie.dart';
 import 'package:chewie_example/models/playback_segment.dart';
 import 'package:chewie_example/models/video_segment_config.dart';
+import 'package:chewie_example/services/storage_service.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
@@ -39,9 +40,50 @@ class VideoPlaylistController extends GetxController {
   }
 
   /// 初始化播放列表视频
-  void _initializePlaylistVideos() {
-    // 初始化为空列表，用户可以通过添加按钮添加视频
-    playlistVideos.value = [];
+  Future<void> _initializePlaylistVideos() async {
+    // 从本地存储加载播放列表
+    try {
+      final cachedVideos = await StorageService.loadPlaylist();
+
+      if (cachedVideos.isNotEmpty) {
+        // 有缓存数据，使用缓存数据初始化
+        playlistVideos.value = cachedVideos;
+
+        // 重新建立视频循环链表
+        _linkVideos();
+
+        // 为每个视频建立 segment 循环链表
+        for (final video in playlistVideos) {
+          video.linkSegments();
+        }
+
+        // 如果列表不为空，自动初始化播放第一个视频
+        final firstVideo = playlistVideos.first;
+        await _switchToVideo(firstVideo);
+      } else {
+        // 没有缓存数据，初始化为空列表
+        playlistVideos.value = [];
+      }
+    } catch (e) {
+      // 加载失败时初始化为空列表
+      playlistVideos.value = [];
+    }
+  }
+
+  /// 建立视频循环链表
+  void _linkVideos() {
+    if (playlistVideos.isEmpty) return;
+
+    // 更新视频循环链表，最后一个视频指向第一个，实现无缝循环播放
+    for (int i = 0; i < playlistVideos.length; i++) {
+      playlistVideos[i].nextVideo =
+          playlistVideos[(i + 1) % playlistVideos.length];
+    }
+  }
+
+  /// 保存播放列表到本地存储
+  Future<void> _savePlaylist() async {
+    await StorageService.savePlaylist(playlistVideos);
   }
 
   /// 添加视频到播放列表
@@ -63,19 +105,17 @@ class VideoPlaylistController extends GetxController {
     // 将新视频添加到列表末尾
     playlistVideos.addAll(newVideos);
 
-    // 更新视频循环链表，最后一个视频指向第一个，实现无缝循环播放
-    if (playlistVideos.isNotEmpty) {
-      for (int i = 0; i < playlistVideos.length; i++) {
-        playlistVideos[i].nextVideo =
-            playlistVideos[(i + 1) % playlistVideos.length];
-      }
-    }
+    // 更新视频循环链表
+    _linkVideos();
 
     // 如果是第一次添加视频（列表之前为空），自动初始化播放第一个视频
     if (wasEmpty && playlistVideos.isNotEmpty) {
       final firstVideo = playlistVideos.first;
       await _switchToVideo(firstVideo);
     }
+
+    // 保存播放列表到本地存储
+    await _savePlaylist();
   }
 
   /// 清理旧的播放器资源
@@ -289,11 +329,11 @@ class VideoPlaylistController extends GetxController {
   /// [video] 要添加区间的视频
   /// [start] 区间起始时间
   /// [end] 区间结束时间
-  void addSegmentToVideo({
+  Future<void> addSegmentToVideo({
     required PlaylistVideo video,
     required Duration start,
     required Duration end,
-  }) {
+  }) async {
     // 创建新的播放区间
     final segment = PlaybackSegment(start: start, end: end);
 
@@ -307,6 +347,9 @@ class VideoPlaylistController extends GetxController {
     // 通过重新赋值整个列表来触发 GetX 的响应式更新
     final currentList = List<PlaylistVideo>.from(playlistVideos);
     playlistVideos.value = currentList;
+
+    // 保存播放列表到本地存储
+    await _savePlaylist();
 
     Get.snackbar(
       '成功',

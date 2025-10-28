@@ -73,4 +73,30 @@ class PlaylistVideo {
     return currentPlayingSegment.value != null &&
         currentPlayingSegment.value!.isPlaying.value;
   }
+
+  /// 转换为 JSON 格式
+  Map<String, dynamic> toJson() {
+    return {
+      'url': url,
+      'segments': segments.map((segment) => segment.toJson()).toList(),
+    };
+  }
+
+  /// 从 JSON 格式创建 PlaylistVideo
+  factory PlaylistVideo.fromJson(Map<String, dynamic> json) {
+    final video = PlaylistVideo(url: json['url'] as String);
+
+    // 解析 segments
+    final segmentsJson = json['segments'] as List<dynamic>?;
+    if (segmentsJson != null) {
+      for (final segmentJson in segmentsJson) {
+        final segment = PlaybackSegment.fromJson(
+          segmentJson as Map<String, dynamic>,
+        );
+        video.addSegment(segment);
+      }
+    }
+
+    return video;
+  }
 }

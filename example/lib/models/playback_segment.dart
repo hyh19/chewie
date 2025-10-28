@@ -24,4 +24,17 @@ class PlaybackSegment {
   bool contains(Duration position) {
     return position >= start && position <= end;
   }
+
+  /// 转换为 JSON 格式
+  Map<String, dynamic> toJson() {
+    return {'start': start.inMilliseconds, 'end': end.inMilliseconds};
+  }
+
+  /// 从 JSON 格式创建 PlaybackSegment
+  factory PlaybackSegment.fromJson(Map<String, dynamic> json) {
+    return PlaybackSegment(
+      start: Duration(milliseconds: json['start'] as int),
+      end: Duration(milliseconds: json['end'] as int),
+    );
+  }
 }
