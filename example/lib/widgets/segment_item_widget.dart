@@ -50,7 +50,7 @@ class SegmentItemWidget extends StatelessWidget {
             fontSize: 13,
           ),
         ),
-        // 右侧按钮区域：编辑、删除、播放图标
+        // 右侧按钮区域：编辑、删除
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -74,13 +74,6 @@ class SegmentItemWidget extends StatelessWidget {
                 Get.find<VideoPlaylistController>().deleteSegment(segment);
               },
             ),
-            // 播放中的区间显示播放图标
-            if (isPlaying)
-              Icon(
-                Icons.play_arrow,
-                color: Theme.of(context).primaryColor,
-                size: 20,
-              ),
           ],
         ),
         // 点击区间时调用控制器切换或跳转到该区间
