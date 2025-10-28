@@ -14,7 +14,7 @@ class PlaylistVideo {
   // 当前正在播放的区间（响应式），用于追踪播放状态
   final Rx<PlaybackSegment?> currentPlayingSegment;
   // 下一个视频对象，形成循环链表结构以实现无限播放
-  late final PlaylistVideo nextVideo;
+  late PlaylistVideo nextVideo;
 
   /// 添加一个 segment
   void addSegment(PlaybackSegment segment) {

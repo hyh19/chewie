@@ -251,6 +251,82 @@ class VideoPlaylistController extends GetxController {
     }
   }
 
+  /// 暂停当前播放的视频
+  void pauseVideo() {
+    if (_videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized &&
+        _videoPlayerController!.value.isPlaying) {
+      _videoPlayerController!.pause();
+    }
+  }
+
+  /// 恢复播放视频
+  void resumeVideo() {
+    if (_videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized &&
+        !_videoPlayerController!.value.isPlaying) {
+      _videoPlayerController!.play();
+    }
+  }
+
+  /// 获取指定视频的最大时长
+  ///
+  /// [video] 要获取时长的视频
+  /// 返回视频的最大时长，如果无法获取则返回 null
+  Duration? getVideoMaxDuration(PlaylistVideo video) {
+    // 如果是当前播放的视频，从播放器获取时长
+    if (video == currentPlayingVideo.value &&
+        _videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized) {
+      return _videoPlayerController!.value.duration;
+    }
+    // 其他情况无法获取时长，返回 null
+    return null;
+  }
+
+  /// 为指定视频添加播放区间
+  ///
+  /// [video] 要添加区间的视频
+  /// [start] 区间起始时间
+  /// [end] 区间结束时间
+  void addSegmentToVideo({
+    required PlaylistVideo video,
+    required Duration start,
+    required Duration end,
+  }) {
+    // 创建新的播放区间
+    final segment = PlaybackSegment(start: start, end: end);
+
+    // 添加区间到视频
+    video.addSegment(segment);
+
+    // 更新 segment 循环链表
+    video.linkSegments();
+
+    // 触发 UI 更新：由于 segments 是普通 List，需要通过更新 playlistVideos 来触发响应式更新
+    // 通过重新赋值整个列表来触发 GetX 的响应式更新
+    final currentList = List<PlaylistVideo>.from(playlistVideos);
+    playlistVideos.value = currentList;
+
+    Get.snackbar(
+      '成功',
+      '已添加播放区间 ${_formatDuration(start)} - ${_formatDuration(end)}',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  /// 格式化时间显示
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    if (duration.inHours > 0) {
+      return '${duration.inHours}:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
+  }
+
   @override
   void onClose() {
     _disposeOldPlayer();

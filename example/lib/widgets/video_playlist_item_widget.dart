@@ -1,5 +1,6 @@
 import 'package:chewie_example/controllers/video_playlist_controller.dart';
 import 'package:chewie_example/models/video_segment_config.dart';
+import 'package:chewie_example/widgets/add_segment_bottom_sheet.dart';
 import 'package:chewie_example/widgets/segment_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -67,10 +68,62 @@ class VideoPlaylistItemWidget extends StatelessWidget {
                   controller.onVideoTapped(video);
                 }
               : null,
-          // 将每个 segment 映射为 SegmentItemWidget
-          children: video.segments.map((segment) {
-            return SegmentItemWidget(segment: segment);
-          }).toList(),
+          // 将每个 segment 映射为 SegmentItemWidget，并在末尾添加"添加区间"按钮
+          children: [
+            ...video.segments.map((segment) {
+              return SegmentItemWidget(segment: segment);
+            }),
+            // 添加区间按钮
+            ListTile(
+              dense: true,
+              leading: Icon(
+                Icons.add_circle_outline,
+                color: Theme.of(context).primaryColor,
+              ),
+              title: const Text(
+                '添加区间',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () async {
+                final controller = Get.find<VideoPlaylistController>();
+
+                // 如果该视频正在播放，暂停视频
+                final wasPlaying = video.isPlaying;
+                if (wasPlaying) {
+                  controller.pauseVideo();
+                }
+
+                // 获取视频最大时长
+                final maxDuration = controller.getVideoMaxDuration(video);
+
+                // 显示添加区间 BottomSheet
+                final result = await Get.bottomSheet<Map<String, Duration>>(
+                  AddSegmentBottomSheet(maxDuration: maxDuration),
+                  isScrollControlled: true,
+                  backgroundColor: Colors.white,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                );
+
+                // 如果返回了时间段，添加到视频
+                if (result != null) {
+                  controller.addSegmentToVideo(
+                    video: video,
+                    start: result['start']!,
+                    end: result['end']!,
+                  );
+                }
+
+                // 不自动恢复播放，让用户自己控制
+              },
+            ),
+          ],
         ),
       );
     });
